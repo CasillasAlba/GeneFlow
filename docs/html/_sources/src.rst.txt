@@ -1,0 +1,55 @@
+DataObject 
+---------------------
+
+.. automodule:: src.dataobject
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ETL 
+--------------
+
+.. automodule:: src.etl
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Model 
+----------------
+
+.. automodule:: src.model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Objects 
+------------------
+
+.. automodule:: src.objects
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Processing 
+---------------------
+
+.. automodule:: src.processing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Utils 
+----------------
+
+.. automodule:: src.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Visualize 
+--------------------
+
+.. automodule:: src.visualize
+   :members:
+   :undoc-members:
+   :show-inheritance:

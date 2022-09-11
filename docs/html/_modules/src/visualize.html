@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.visualize &mdash; GeneFlow 0.8 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html"><img src="../../_static/geneflow_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">GeneFlow:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../geneflow.html">GeneFlow</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html">DataObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.etl">ETL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.model">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.objects">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.processing">Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.utils">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.visualize">Visualize</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeneFlow</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>src.visualize</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.visualize</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">@author: Alba Casillas Rodríguez (albacaro@correo.ugr.es)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">src</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">ut</span>
+<span class="kn">from</span> <span class="nn">src</span> <span class="kn">import</span> <span class="n">processing</span> <span class="k">as</span> <span class="n">pro</span>
+
+<span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
+<span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="kn">import</span> <span class="n">make_subplots</span>
+<span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
+<span class="kn">import</span> <span class="nn">plotly.io</span> <span class="k">as</span> <span class="nn">pio</span>
+<span class="kn">import</span> <span class="nn">plotly.figure_factory</span> <span class="k">as</span> <span class="nn">ff</span>
+<span class="kn">import</span> <span class="nn">webbrowser</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">precision_recall_curve</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="kn">import</span> <span class="n">pdist</span><span class="p">,</span> <span class="n">squareform</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">zscore</span>
+
+<span class="c1"># Set notebook mode to work in offline</span>
+<span class="n">pio</span><span class="o">.</span><span class="n">renderers</span><span class="o">.</span><span class="n">default</span><span class="o">=</span><span class="s1">&#39;svg&#39;</span>
+
+<span class="c1"># R OBJECT</span>
+<span class="kn">from</span> <span class="nn">rpy2.robjects.packages</span> <span class="kn">import</span> <span class="n">importr</span>
+<span class="kn">import</span> <span class="nn">rpy2.robjects</span> <span class="k">as</span> <span class="nn">ro</span>
+<span class="kn">from</span> <span class="nn">rpy2.robjects</span> <span class="kn">import</span> <span class="n">pandas2ri</span>
+<span class="kn">from</span> <span class="nn">rpy2.robjects.conversion</span> <span class="kn">import</span> <span class="n">localconverter</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">utils = importr(&quot;utils&quot;)</span>
+<span class="sd">utils.install_packages(&quot;BiocManager&quot;)</span>
+
+<span class="sd">BiocManager = importr(&quot;BiocManager&quot;) </span>
+<span class="sd">BiocManager.install(&quot;limma&quot;) </span>
+
+<span class="sd">limma = importr(&quot;limma&quot;)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1">###############################################################################</span>
+        
+<span class="c1">#                               GENERAL METHODS</span>
+
+<span class="c1">###############################################################################</span>
+        
+<div class="viewcode-block" id="update_layout"><a class="viewcode-back" href="../../src.html#src.visualize.update_layout">[docs]</a><span class="k">def</span> <span class="nf">update_layout</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">xlabel</span><span class="p">,</span> <span class="n">ylabel</span><span class="p">,</span> <span class="n">x_ini_range</span><span class="p">,</span> <span class="n">x_fin_range</span><span class="p">,</span> <span class="n">y_ini_range</span><span class="p">,</span> <span class="n">y_fin_range</span><span class="p">,</span>
+                  <span class="n">legend</span><span class="p">,</span> <span class="n">legend_title</span><span class="p">,</span> <span class="n">vheight</span><span class="p">,</span> <span class="n">vwidth</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the features of the figure to display.</span>
+
+<span class="sd">    :param fig: Figure to update.</span>
+<span class="sd">    :type fig: Figure</span>
+<span class="sd">    :param xlabel: Name of the X axis.</span>
+<span class="sd">    :type xlabel: str</span>
+<span class="sd">    :param ylabel: Name of the Y axis.</span>
+<span class="sd">    :type ylabel: str</span>
+<span class="sd">    :param x_ini_range: Initial value of X axis range.</span>
+<span class="sd">    :type x_ini_range: int</span>
+<span class="sd">    :param x_fin_range: Final value of X axis range.</span>
+<span class="sd">    :type x_fin_range: int</span>
+<span class="sd">    :param y_ini_range: Initial value of Y axis range.</span>
+<span class="sd">    :type y_ini_range: int</span>
+<span class="sd">    :param y_fin_range: Final value of Y axis range.</span>
+<span class="sd">    :type y_fin_range: int</span>
+<span class="sd">    :param legend: Indicates if the figure will have legend or not.</span>
+<span class="sd">    :type legend: bool</span>
+<span class="sd">    :param legend_title: Name of the legend&#39;s label</span>
+<span class="sd">    :type legend_title: str</span>
+<span class="sd">    :param vheight: Height of the figure as image.</span>
+<span class="sd">    :type vheight: int</span>
+<span class="sd">    :param vwidth: Width of the figure as image.</span>
+<span class="sd">    :type vwidth: int</span>
+<span class="sd">    :param title: Title of the figure.</span>
+<span class="sd">    :type title: str</span>
+
+<span class="sd">    :return: The figure with the layout&#39;s features updated.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;&lt;i&gt;&lt;b&gt;&quot;</span> <span class="o">+</span> <span class="n">title</span> <span class="o">+</span> <span class="s2">&quot;&lt;/b&gt;&lt;/i&gt;&quot;</span>
+    
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">title_text</span> <span class="o">=</span> <span class="n">title</span><span class="p">,</span> 
+                <span class="n">xaxis_title</span> <span class="o">=</span> <span class="n">xlabel</span><span class="p">,</span>
+                <span class="n">yaxis_title</span> <span class="o">=</span> <span class="n">ylabel</span><span class="p">,</span>
+                <span class="n">height</span> <span class="o">=</span> <span class="n">vheight</span><span class="p">,</span> 
+                <span class="n">width</span> <span class="o">=</span> <span class="n">vwidth</span><span class="p">,</span>
+                <span class="n">title_x</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+                <span class="n">legend_title_text</span><span class="o">=</span><span class="n">legend_title</span><span class="p">,</span>
+                <span class="n">showlegend</span> <span class="o">=</span> <span class="n">legend</span><span class="p">)</span>
+
+
+    <span class="k">if</span> <span class="n">x_ini_range</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x_fin_range</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_xaxes</span><span class="p">(</span><span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">x_ini_range</span><span class="p">,</span> <span class="n">x_fin_range</span><span class="p">])</span>
+        
+    <span class="k">if</span> <span class="n">y_ini_range</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y_fin_range</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+        
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_yaxes</span><span class="p">(</span><span class="nb">range</span><span class="o">=</span><span class="p">[</span><span class="n">y_ini_range</span><span class="p">,</span> <span class="n">y_fin_range</span><span class="p">])</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="show_figure"><a class="viewcode-back" href="../../src.html#src.visualize.show_figure">[docs]</a><span class="k">def</span> <span class="nf">show_figure</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">xlabel</span> <span class="o">=</span> <span class="s2">&quot;x axis&quot;</span><span class="p">,</span> <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;y axis&quot;</span><span class="p">,</span> <span class="n">x_ini_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x_fin_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">y_ini_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y_fin_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">legend</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">legend_title</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">vheight</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span> <span class="n">vwidth</span> <span class="o">=</span> <span class="mi">800</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Plot of the figure&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Show in the screen the figure plot with the specified figured parameters.</span>
+
+<span class="sd">    :param fig: Figure to update.</span>
+<span class="sd">    :type fig: Figure</span>
+<span class="sd">    :param xlabel: Name of the X axis. Defaults to &#39;x axis&#39;.</span>
+<span class="sd">    :type xlabel: str</span>
+<span class="sd">    :param ylabel: Name of the Y axis. Defaults to &#39;y axis&#39;.</span>
+<span class="sd">    :type ylabel: str</span>
+<span class="sd">    :param x_ini_range: Initial value of X axis range. Defaults to None.</span>
+<span class="sd">    :type x_ini_range: int</span>
+<span class="sd">    :param x_fin_range: Final value of X axis range. Defaults to None.</span>
+<span class="sd">    :type x_fin_range: int</span>
+<span class="sd">    :param y_ini_range: Initial value of Y axis range. Defaults to None.</span>
+<span class="sd">    :type y_ini_range: int</span>
+<span class="sd">    :param y_fin_range: Final value of Y axis range. Defaults to None.</span>
+<span class="sd">    :type y_fin_range: int</span>
+<span class="sd">    :param legend: Indicates if the figure will have legend or not. Defaults to &#39;True&#39;.</span>
+<span class="sd">    :type legend: bool</span>
+<span class="sd">    :param legend_title: Name of the legend&#39;s label</span>
+<span class="sd">    :type legend_title: str</span>
+<span class="sd">    :param vheight: Height of the figure as image. Defaults to 600.</span>
+<span class="sd">    :type vheight: int</span>
+<span class="sd">    :param vwidth: Width of the figure as image. Defaults to 800.</span>
+<span class="sd">    :type vwidth: int</span>
+<span class="sd">    :param title: Title of the figure. Defaults to &#39;Plot of the figure&#39;.</span>
+<span class="sd">    :type title: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">update_layout</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">xlabel</span> <span class="o">=</span> <span class="n">xlabel</span><span class="p">,</span> <span class="n">ylabel</span> <span class="o">=</span> <span class="n">ylabel</span><span class="p">,</span> <span class="n">x_ini_range</span> <span class="o">=</span> <span class="n">x_ini_range</span><span class="p">,</span> <span class="n">x_fin_range</span> <span class="o">=</span> <span class="n">x_fin_range</span><span class="p">,</span> <span class="n">y_ini_range</span> <span class="o">=</span> <span class="n">y_ini_range</span><span class="p">,</span> 
+                <span class="n">y_fin_range</span> <span class="o">=</span> <span class="n">y_fin_range</span><span class="p">,</span> <span class="n">legend</span> <span class="o">=</span> <span class="n">legend</span><span class="p">,</span> <span class="n">legend_title</span> <span class="o">=</span> <span class="n">legend_title</span><span class="p">,</span> <span class="n">vheight</span> <span class="o">=</span> <span class="n">vheight</span><span class="p">,</span> <span class="n">vwidth</span> <span class="o">=</span> <span class="n">vwidth</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="n">title</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="save_image"><a class="viewcode-back" href="../../src.html#src.visualize.save_image">[docs]</a><span class="k">def</span> <span class="nf">save_image</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">fig_name</span> <span class="o">=</span> <span class="s2">&quot;fig&quot;</span><span class="p">,</span> <span class="n">img_format</span> <span class="o">=</span> <span class="s2">&quot;png&quot;</span><span class="p">,</span> <span class="n">os_path</span> <span class="o">=</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> 
+               <span class="n">xlabel</span> <span class="o">=</span> <span class="s2">&quot;x axis&quot;</span><span class="p">,</span> <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;y axis&quot;</span><span class="p">,</span> <span class="n">x_ini_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">x_fin_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">y_ini_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y_fin_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">legend</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">legend_title</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">vheight</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span> <span class="n">vwidth</span> <span class="o">=</span> <span class="mi">800</span><span class="p">,</span> 
+               <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Plot of the figure&quot;</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Save a figure as image on disk.</span>
+
+<span class="sd">    :param fig: Figure to update.</span>
+<span class="sd">    :type fig: Figure</span>
+<span class="sd">    :param fig_name: Name of file.</span>
+<span class="sd">    :type fig_name: str</span>
+<span class="sd">    :param img_format: Format of the file saved. Available formats: &#39;png&#39;, &#39;jpeg&#39;, </span>
+<span class="sd">        &#39;webp&#39;, &#39;svg&#39;, &#39;pdf&#39;.</span>
+<span class="sd">    :type img_format: str</span>
+<span class="sd">    :param os_path: Path to save the image.</span>
+<span class="sd">    :type os_path: str</span>
+<span class="sd">    :param xlabel: Name of the X axis. Defaults to &#39;x axis&#39;.</span>
+<span class="sd">    :type xlabel: str</span>
+<span class="sd">    :param ylabel: Name of the Y axis. Defaults to &#39;y axis&#39;.</span>
+<span class="sd">    :type ylabel: str</span>
+<span class="sd">    :param x_ini_range: Initial value of X axis range. Defaults to None.</span>
+<span class="sd">    :type x_ini_range: int</span>
+<span class="sd">    :param x_fin_range: Final value of X axis range. Defaults to None.</span>
+<span class="sd">    :type x_fin_range: int</span>
+<span class="sd">    :param y_ini_range: Initial value of Y axis range. Defaults to None.</span>
+<span class="sd">    :type y_ini_range: int</span>
+<span class="sd">    :param y_fin_range: Final value of Y axis range. Defaults to None.</span>
+<span class="sd">    :type y_fin_range: int</span>
+<span class="sd">    :param legend: Indicates if the figure will have legend or not. Defaults to &#39;True&#39;.</span>
+<span class="sd">    :type legend: bool</span>
+<span class="sd">    :param legend_title: Name of the legend&#39;s label</span>
+<span class="sd">    :type legend_title: str</span>
+<span class="sd">    :param vheight: Height of the figure as image. Defaults to 600.</span>
+<span class="sd">    :type vheight: int</span>
+<span class="sd">    :param vwidth: Width of the figure as image. Defaults to 800.</span>
+<span class="sd">    :type vwidth: int</span>
+<span class="sd">    :param title: Title of the figure. Defaults to &#39;Plot of the figure&#39;.</span>
+<span class="sd">    :type title: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">valid_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;png&quot;</span><span class="p">,</span> <span class="s2">&quot;jpeg&quot;</span><span class="p">,</span> <span class="s2">&quot;webp&quot;</span><span class="p">,</span> <span class="s2">&quot;svg&quot;</span><span class="p">,</span> <span class="s2">&quot;pdf&quot;</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="n">img_format</span> <span class="ow">in</span> <span class="n">valid_formats</span><span class="p">:</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os_path</span><span class="p">):</span>
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">os_path</span><span class="p">)</span>
+            
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">update_layout</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">xlabel</span> <span class="o">=</span> <span class="n">xlabel</span><span class="p">,</span> <span class="n">ylabel</span> <span class="o">=</span> <span class="n">ylabel</span><span class="p">,</span> <span class="n">x_ini_range</span> <span class="o">=</span> <span class="n">x_ini_range</span><span class="p">,</span> <span class="n">x_fin_range</span> <span class="o">=</span> <span class="n">x_fin_range</span><span class="p">,</span> <span class="n">y_ini_range</span> <span class="o">=</span> <span class="n">y_ini_range</span><span class="p">,</span> 
+                <span class="n">y_fin_range</span> <span class="o">=</span> <span class="n">y_fin_range</span><span class="p">,</span> <span class="n">legend</span> <span class="o">=</span> <span class="n">legend</span><span class="p">,</span> <span class="n">legend_title</span> <span class="o">=</span> <span class="n">legend_title</span><span class="p">,</span> <span class="n">vheight</span> <span class="o">=</span> <span class="n">vheight</span><span class="p">,</span> <span class="n">vwidth</span> <span class="o">=</span> <span class="n">vwidth</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="n">title</span><span class="p">)</span>
+            
+        <span class="n">img_path</span> <span class="o">=</span> <span class="n">os_path</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">fig_name</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">img_format</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+            
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unable to save the image.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+    
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Format type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">img_format</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is not available. The format options availables are:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">valid_formats</span><span class="p">))</span>
+            
+        <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="show_image_web"><a class="viewcode-back" href="../../src.html#src.visualize.show_image_web">[docs]</a><span class="k">def</span> <span class="nf">show_image_web</span><span class="p">(</span><span class="n">fig</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Show an image on a web browser. If there is not an available web browser,</span>
+<span class="sd">    it shows the image on the default application to visualize images.</span>
+
+<span class="sd">    :param fig: Figure to dislay.</span>
+<span class="sd">    :type fig: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># It is necessary to have the whole path of the file because the browser</span>
+    <span class="c1"># won´t execute a relative path, but it&#39;ll do it from the path were it is</span>
+    <span class="c1"># installed, so it is NEEDED the absolute path</span>
+    <span class="k">if</span> <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fig</span><span class="p">):</span>
+
+        <span class="n">fullpath_img</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="c1"># Local path of File type to be able to open it in the browser</span>
+        <span class="n">webname</span> <span class="o">=</span> <span class="s2">&quot;file://&quot;</span> <span class="o">+</span> <span class="n">fullpath_img</span>
+        
+        <span class="c1"># If the browser is not installled it will raise an error so it will be used</span>
+        <span class="c1"># the default application of the system</span>
+        <span class="c1"># Try with the most used browsers: google chrome, mozilla firefox, opera and safari (MAC)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">webbrowser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;google-chrome&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">webname</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            
+            <span class="k">try</span><span class="p">:</span> 
+                <span class="n">webbrowser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mozilla&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">webname</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">webbrowser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;opera&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">webname</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">webbrowser</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;safari&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">webname</span><span class="p">)</span>
+                        
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">webbrowser</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">webname</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; does not exist&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1">###############################################################################</span>
+        
+<span class="c1">#                      PREPROCESSING VISUALIZATIONS</span>
+
+<span class="c1">###############################################################################     </span>
+
+
+<span class="c1"># Displays a bar plot</span>
+<div class="viewcode-block" id="bar_plot"><a class="viewcode-back" href="../../src.html#src.visualize.bar_plot">[docs]</a><span class="k">def</span> <span class="nf">bar_plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a bar diagram with the data received as the input.</span>
+
+<span class="sd">    :param data: Data values to create the diagram.</span>
+<span class="sd">    :type data: DataFrame</span>
+<span class="sd">    :param x: Name of X axis. Defaults to None.</span>
+<span class="sd">    :type x: str</span>
+<span class="sd">    :param y: Name of Y axis. Defaults to None.</span>
+<span class="sd">    :type y: str</span>
+
+<span class="sd">    :return: Figure that contains the bar plot</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">colsum</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">colsum</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="kde_plot"><a class="viewcode-back" href="../../src.html#src.visualize.kde_plot">[docs]</a><span class="k">def</span> <span class="nf">kde_plot</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a Kernel Density Estimation (kde) diagram with the data received as the input.</span>
+<span class="sd">    A kernel density estimate (KDE) plot is a method for visualizing the distribution </span>
+<span class="sd">    of observations in a dataset, analagous to a histogram.</span>
+
+<span class="sd">    :param data: Data values to create the diagram.</span>
+<span class="sd">    :type data: DataFrame</span>
+
+<span class="sd">    :return: Figure that contains the KDE plot.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ut</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">create_distplot</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">show_hist</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show_rug</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">fig</span>
+        
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Input data must be a dataframe&quot;</span><span class="p">)</span>
+        <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+        
+
+<div class="viewcode-block" id="box_plot"><a class="viewcode-back" href="../../src.html#src.visualize.box_plot">[docs]</a><span class="k">def</span> <span class="nf">box_plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">median</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a box plot with the data received as the input.</span>
+<span class="sd">    If &quot;median&quot; parameter is true, the function will display a line with the median value.</span>
+<span class="sd">    If x and y are not None, they must be name of row and column of the data.</span>
+
+<span class="sd">    :param data: The data used to create the plot.</span>
+<span class="sd">    :type data: DataFrame</span>
+<span class="sd">    :param x: Name of X axis. Defaults to None.</span>
+<span class="sd">    :type x: str</span>
+<span class="sd">    :param y: Name of Y axis. Defaults to None.</span>
+<span class="sd">    :type y: str</span>
+<span class="sd">    :param median: Indicates if the diagram will show a median line. </span>
+<span class="sd">        Defaults to &#39;False&#39;.</span>
+<span class="sd">    :type median: bool</span>
+
+<span class="sd">    :return: Figure that contains the box plot.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># If x and y is not None, they will be names of data columns</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">box</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> 
+        
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">box</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;label&quot;</span><span class="p">)</span>            
+    
+    <span class="k">if</span> <span class="n">median</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">median</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_hline</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">median</span><span class="p">)</span>
+            
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="heatmap"><a class="viewcode-back" href="../../src.html#src.visualize.heatmap">[docs]</a><span class="k">def</span> <span class="nf">heatmap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;YlOrRd&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a heatmap with the data received as the input.</span>
+
+<span class="sd">    :param x: The data to create the heatmap.</span>
+<span class="sd">    :type x: list</span>
+<span class="sd">    :param y: The data to create the heatmap.</span>
+<span class="sd">    :type y: list</span>
+<span class="sd">    :param z: The data to create the heatmap.</span>
+<span class="sd">    :type z: list</span>
+<span class="sd">    :param color: color spectrum used on heatmap</span>
+<span class="sd">    :type color: str</span>
+
+<span class="sd">    :return: Figure that contains the heatmap.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+        <span class="n">go</span><span class="o">.</span><span class="n">Heatmap</span><span class="p">(</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">,</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">z</span><span class="p">,</span>
+            <span class="n">colorscale</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+    
+
+<span class="c1"># https://plotly.com/python/dendrogram/</span>
+<span class="c1"># https://community.plotly.com/t/heatmap-with-dendrogam-and-y-ticks-labels/31694</span>
+<div class="viewcode-block" id="clustermap"><a class="viewcode-back" href="../../src.html#src.visualize.clustermap">[docs]</a><span class="k">def</span> <span class="nf">clustermap</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;YlOrRd&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a clustermap with the data received as the input.</span>
+<span class="sd">    A clustermap order data by similarity. </span>
+<span class="sd">    This reorganizes the data for the rows and columns and displays </span>
+<span class="sd">    similar content next to one another for even more </span>
+<span class="sd">    depth of understanding the data.</span>
+
+<span class="sd">    :param data: The data to create the clustermap.</span>
+<span class="sd">    :type data: DataFrame</span>
+<span class="sd">    :param color: color spectrum used on heatmap of clustermap</span>
+<span class="sd">    :type color: str</span>
+
+<span class="sd">    :return: Figure that contains the clustermap.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">transpose</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">copy_object</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">transpose</span> <span class="o">=</span> <span class="n">pro</span><span class="o">.</span><span class="n">Transpose</span><span class="p">()</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">transpose</span><span class="p">)</span>
+
+    <span class="n">new_datas_transpose</span> <span class="o">=</span> <span class="n">zscore</span><span class="p">(</span><span class="n">transpose</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">ddof</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nan_policy</span> <span class="o">=</span> <span class="s2">&quot;propagate&quot;</span><span class="p">)</span>
+
+
+    <span class="n">new_datas</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">copy_object</span><span class="p">(</span><span class="n">new_datas_transpose</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+
+    <span class="c1"># (x - media) / sd</span>
+    <span class="c1">#new_datas = (flipped.values - flipped.values.mean()) / flipped.values.std()    </span>
+
+    <span class="c1">##### ESTE ES EL DENDOGRAMA DE ARRIBA (MUESTRAS)</span>
+
+    <span class="c1"># Initialize figure by creating upper dendrogram</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">create_dendrogram</span><span class="p">(</span><span class="n">new_datas_transpose</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;bottom&#39;</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])):</span>
+        <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;yaxis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;y2&#39;</span>
+    
+
+    <span class="c1">###### ESTE ES EL DENDOGRAMA DE LA IZQUIERDA (GENES)</span>
+
+    <span class="c1"># Create Side Dendrogram</span>
+    <span class="n">dendro_side</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">create_dendrogram</span><span class="p">(</span><span class="n">new_datas</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span><span class="n">labels</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+        
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dendro_side</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">])):</span>
+        <span class="n">dendro_side</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;xaxis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x2&#39;</span>
+    
+    <span class="c1"># Add Side Dendrogram Data to Figure</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dendro_side</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+
+    <span class="c1"># Create Heatmap</span>
+    <span class="n">dendro_leaves</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;xaxis&#39;</span><span class="p">][</span><span class="s1">&#39;ticktext&#39;</span><span class="p">])</span>
+            
+    <span class="n">dendro_insides</span> <span class="o">=</span> <span class="n">dendro_side</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;yaxis&#39;</span><span class="p">][</span><span class="s1">&#39;ticktext&#39;</span><span class="p">]</span>
+
+    <span class="n">dendro_insides</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">dendro_insides</span><span class="p">))</span>
+           
+    <span class="n">heatmap</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">go</span><span class="o">.</span><span class="n">Heatmap</span><span class="p">(</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">dendro_leaves</span><span class="p">,</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">dendro_insides</span><span class="p">,</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">new_datas</span><span class="p">,</span>
+            <span class="n">colorscale</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c1"># zscore(data.values, ddof = 0, nan_policy = &quot;propagate&quot;),</span>
+    
+    <span class="n">heatmap</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;xaxis&#39;</span><span class="p">][</span><span class="s1">&#39;tickvals&#39;</span><span class="p">]</span>
+    <span class="n">heatmap</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dendro_side</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;yaxis&#39;</span><span class="p">][</span><span class="s1">&#39;tickvals&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Add Heatmap Data to Figure</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">heatmap</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    
+    <span class="c1"># Edit Layout</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">({</span><span class="s1">&#39;width&#39;</span><span class="p">:</span><span class="mi">800</span><span class="p">,</span> <span class="s1">&#39;height&#39;</span><span class="p">:</span><span class="mi">800</span><span class="p">,</span>
+                             <span class="s1">&#39;showlegend&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;hovermode&#39;</span><span class="p">:</span> <span class="s1">&#39;closest&#39;</span><span class="p">,</span>
+                             <span class="p">})</span>
+
+    <span class="c1"># Edit xaxis</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">xaxis</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">.</span><span class="mi">15</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                                      <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;showgrid&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;showline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;zeroline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;ticks&#39;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">})</span>
+
+    <span class="c1"># Edit xaxis2</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">xaxis2</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">.</span><span class="mi">15</span><span class="p">],</span>
+                                       <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;showgrid&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;showline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;zeroline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;showticklabels&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;ticks&#39;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">})</span>
+
+    <span class="c1"># Edit yaxis</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">yaxis</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;domain&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">.</span><span class="mi">85</span><span class="p">],</span>
+                                      <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;showgrid&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;showline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;zeroline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;showticklabels&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="s1">&#39;ticks&#39;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span>
+                            <span class="p">})</span>
+
+    <span class="c1"># Edit yaxis2</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">yaxis2</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;domain&#39;</span><span class="p">:[</span><span class="o">.</span><span class="mi">825</span><span class="p">,</span> <span class="o">.</span><span class="mi">975</span><span class="p">],</span>
+                                       <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;showgrid&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;showline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;zeroline&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;showticklabels&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="s1">&#39;ticks&#39;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">})</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+
+<div class="viewcode-block" id="mds_plot"><a class="viewcode-back" href="../../src.html#src.visualize.mds_plot">[docs]</a><span class="k">def</span> <span class="nf">mds_plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">color_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">clinical_info</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">symbols</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">text_plot</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a multidimensional diagram plot with the data received as the input.</span>
+<span class="sd">    If &quot;color_list&quot; parameter is empty, colors will be formed automatically by function,</span>
+<span class="sd">    otherwise, lenght of them must be the same as lenght of data columns</span>
+<span class="sd">    If &quot;text_plot&quot; is true, the name of the columns will appear over the point its point on the plot,</span>
+<span class="sd">    if False will only appear the point</span>
+
+<span class="sd">    :param data: The data used to create the plot.</span>
+<span class="sd">    :type data: DataFrame</span>
+<span class="sd">    :param color_list: A list of colors to be used on plot</span>
+<span class="sd">    :type color_list: list</span>
+<span class="sd">    :param clinical_info: A classification of the samples to represent them by types</span>
+<span class="sd">    :type clinical_info: list</span>
+<span class="sd">    :param symbols: A classification of the samples to represent them by symbols</span>
+<span class="sd">    :type symbols: list</span>
+<span class="sd">    :param text_plot: Indicates if name of column should appear over its representation on plot</span>
+<span class="sd">    :type text_plot: bool</span>
+
+<span class="sd">    :return: Figure that contains the mds plot.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">as_dict_python</span><span class="p">(</span><span class="n">vector</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert an RPy2 ListVector to a Python dict&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vector</span><span class="o">.</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vector</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ro</span><span class="o">.</span><span class="n">ListVector</span><span class="p">):</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">as_dict_python</span><span class="p">(</span><span class="n">vector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="n">limma</span> <span class="o">=</span> <span class="n">importr</span><span class="p">(</span><span class="s2">&quot;limma&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">localconverter</span><span class="p">(</span><span class="n">ro</span><span class="o">.</span><span class="n">default_converter</span> <span class="o">+</span> <span class="n">pandas2ri</span><span class="o">.</span><span class="n">converter</span><span class="p">):</span>
+        <span class="n">r_from_pd_df</span> <span class="o">=</span> <span class="n">ro</span><span class="o">.</span><span class="n">conversion</span><span class="o">.</span><span class="n">py2rpy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">mds</span> <span class="o">=</span> <span class="n">limma</span><span class="o">.</span><span class="n">plotMDS</span><span class="p">(</span><span class="n">r_from_pd_df</span><span class="p">)</span> <span class="c1"># ListVector</span>
+
+    <span class="n">dict_samples</span> <span class="o">=</span> <span class="n">as_dict_python</span><span class="p">(</span><span class="n">mds</span><span class="p">)</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">dict_samples</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">dict_samples</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>
+
+    <span class="n">colors_used</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">clinical_info</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">clinical_info</span><span class="p">):</span>
+            <span class="n">colors_used</span> <span class="o">=</span> <span class="n">clinical_info</span>
+            
+        <span class="k">if</span> <span class="n">text_plot</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">)</span>
+
+
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">color_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">color_list</span><span class="p">):</span>
+            <span class="n">colors_used</span> <span class="o">=</span> <span class="n">color_list</span>
+
+        <span class="k">if</span> <span class="n">text_plot</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">text_plot</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">)</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors_used</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+
+<div class="viewcode-block" id="volcano_plot"><a class="viewcode-back" href="../../src.html#src.visualize.volcano_plot">[docs]</a><span class="k">def</span> <span class="nf">volcano_plot</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">clinical_data</span><span class="p">,</span> <span class="n">grouped_by</span><span class="p">,</span> <span class="n">group_1</span><span class="p">,</span> <span class="n">group_2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a volcano plot with the data received as the input.</span>
+
+<span class="sd">    To do a volcano plot is necessary to indicates two types of information</span>
+<span class="sd">    collected in clinical data.</span>
+<span class="sd">    It will be neccesary calculated a stadistic information</span>
+
+<span class="sd">    :param data: The data used to create the plot.</span>
+<span class="sd">    :type data: DataFrame</span>
+<span class="sd">    :param clinical_data: A dataframe with clinical information of the count matrix</span>
+<span class="sd">    :type clinical_data: DataFrame</span>
+<span class="sd">    :param grouped_by: Name of the clinical data column to organize the plot</span>
+<span class="sd">    :type grouped_by: str</span>
+<span class="sd">    :param group_1: A type of the clinical data column selected</span>
+<span class="sd">    :type group_1: str</span>
+<span class="sd">    :param group_2: A second type of the clinical data column selected</span>
+<span class="sd">    :type group_2: str</span>
+
+<span class="sd">    :return: Figure that contains the volcano plot.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">df_stat</span> <span class="o">=</span> <span class="n">pro</span><span class="o">.</span><span class="n">StatTest</span><span class="p">(</span><span class="n">clinical_data</span><span class="p">,</span> <span class="n">grouped_by</span><span class="p">,</span> <span class="n">group_1</span><span class="p">,</span> <span class="n">group_2</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    
+    <span class="c1"># Text the best_n genes with best rate</span>
+    <span class="n">best_n</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="k">if</span> <span class="n">df_stat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">best_n</span><span class="p">:</span>
+
+        <span class="c1"># Selected the most differencial genes</span>
+        <span class="n">p_values_diff</span> <span class="o">=</span> <span class="n">df_stat</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df_stat</span><span class="p">[</span><span class="s2">&quot;DiffExpr&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;Not Diff&quot;</span><span class="p">]</span>
+
+        <span class="n">p_values_diff</span> <span class="o">=</span> <span class="n">p_values_diff</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">p_values_diff</span><span class="p">[</span><span class="s2">&quot;FoldChange&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="n">ut</span><span class="o">.</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]</span>
+
+        <span class="n">p_values_diff</span> <span class="o">=</span> <span class="n">p_values_diff</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">p_values_diff</span><span class="p">[</span><span class="s2">&quot;FoldChange&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">ut</span><span class="o">.</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]</span>
+
+        
+        <span class="n">p_values_best</span> <span class="o">=</span> <span class="n">p_values_diff</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;P-Value&quot;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">p_values_best</span> <span class="o">=</span> <span class="n">p_values_best</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">best_n</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="c1"># Create a figure to represent Volcano plot</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">df_stat</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;FoldChange&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;P-Value&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;DiffExpr&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">p_values_best</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;FoldChange&quot;</span><span class="p">],</span> 
+                <span class="n">y</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;P-Value&quot;</span><span class="p">],</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">showarrow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">yshift</span><span class="o">=</span><span class="mi">10</span>
+            <span class="p">)</span>
+
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fig</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        
+        <span class="c1"># Create a figure to represent Volcano plot</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">df_stat</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s2">&quot;FoldChange&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;P-Value&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;DiffExpr&quot;</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">df_stat</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="n">textposition</span><span class="o">=</span><span class="s1">&#39;top center&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="duplicated_corr_plot"><a class="viewcode-back" href="../../src.html#src.visualize.duplicated_corr_plot">[docs]</a><span class="k">def</span> <span class="nf">duplicated_corr_plot</span><span class="p">(</span><span class="n">data_duplicated</span><span class="p">,</span> <span class="n">ini_row</span> <span class="o">=</span> <span class="mi">1001</span><span class="p">,</span> <span class="n">fin_row</span> <span class="o">=</span> <span class="mi">2000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a diagram to display the correlation between duplicate variables.</span>
+<span class="sd">        In case the original dataFrame is set as the input, the method will be check</span>
+<span class="sd">        for duplicates. If the DataFrame contains only the duplicates, this checking</span>
+<span class="sd">        will not affect the result.</span>
+<span class="sd">        The layout wil be created the most squared and symetric as possible.</span>
+<span class="sd">    </span>
+<span class="sd">    :param data_duplicated: The duplicated data used to create the diagram</span>
+<span class="sd">    :type data_duplicated: DataFrame</span>
+<span class="sd">    :param ini_row: First row to select the data will be used. Defaults to 1001.</span>
+<span class="sd">    :type ini_row: int</span>
+<span class="sd">    :param fin_row: Final row to select the data will be used. Dafults to 2000.</span>
+<span class="sd">    :type fin_row: int</span>
+
+<span class="sd">    :return: figure that contains a diagram with duplicated data of a correlation</span>
+<span class="sd">    :rtype: figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ini_row</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fin_row</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="c1"># Find duplicated variables in case the user uses the original dataset</span>
+        <span class="c1"># If the dataset already has the duplicated variables, no actions will be performed</span>
+        <span class="n">duplicated_</span> <span class="o">=</span> <span class="p">(</span><span class="n">pro</span><span class="o">.</span><span class="n">DataDuplicates</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">data_duplicated</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">duplicated_</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+
+            <span class="c1"># Data could be already duplicated or there weren&#39;t duplicated but</span>
+            <span class="c1"># after call duplicated_variables function, the duplicated dataset is obtained</span>
+            <span class="n">data_duplicated</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">copy_object</span><span class="p">(</span><span class="n">duplicated_</span><span class="p">)</span>
+
+            <span class="n">dimens</span> <span class="o">=</span> <span class="n">data_duplicated</span><span class="o">.</span><span class="n">shape</span> <span class="c1"># [0] -&gt; Rows ; [1] -&gt; Cols</span>
+            
+            <span class="k">if</span> <span class="n">ini_row</span> <span class="o">&gt;</span> <span class="n">fin_row</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init row can&#39;t be greater than fin row&quot;</span><span class="p">)</span>
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                
+                
+            <span class="k">if</span> <span class="n">ini_row</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ini_row</span> <span class="o">&gt;=</span> <span class="n">dimens</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init row exceeds number of rows of DataFrame&quot;</span><span class="p">)</span>
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                
+            <span class="k">if</span> <span class="n">fin_row</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">fin_row</span> <span class="o">&gt;=</span> <span class="n">dimens</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Fin row exceeds number of rows of DataFrame&quot;</span><span class="p">)</span>
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">dimens</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            
+                <span class="c1"># The duplicate samples are plotted together to assess the correlation.</span>
+                <span class="n">n_elems</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_duplicated</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                
+                <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">calc_plot_dim</span><span class="p">(</span><span class="n">n_elems</span><span class="p">)</span>
+                    
+                <span class="n">c_col</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">c_row</span> <span class="o">=</span> <span class="mi">1</span>
+                
+                <span class="n">fig</span> <span class="o">=</span> <span class="n">make_subplots</span><span class="p">(</span><span class="n">rows</span> <span class="o">=</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">n_cols</span><span class="p">)</span>
+            
+            
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_duplicated</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+                        
+                    <span class="n">li</span> <span class="o">=</span> <span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">((</span><span class="n">data_duplicated</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ini_row</span><span class="p">:</span><span class="n">fin_row</span><span class="p">,</span><span class="n">i</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">data_duplicated</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ini_row</span><span class="p">:</span><span class="n">fin_row</span><span class="p">,</span><span class="n">i</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">))</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">))</span>
+                    <span class="n">li2</span> <span class="o">=</span> <span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">((</span><span class="n">data_duplicated</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ini_row</span><span class="p">:</span><span class="n">fin_row</span><span class="p">,(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">):(</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)])</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">data_duplicated</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ini_row</span><span class="p">:</span><span class="n">fin_row</span><span class="p">,(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">):(</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)]</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">))</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">))</span>
+            
+                    <span class="k">if</span> <span class="n">c_col</span> <span class="o">&gt;</span> <span class="n">n_cols</span><span class="p">:</span>
+                        <span class="n">c_col</span> <span class="o">=</span> <span class="mi">1</span>
+                        <span class="n">c_row</span> <span class="o">=</span> <span class="n">c_row</span> <span class="o">+</span> <span class="mi">1</span>
+
+                    
+                    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+                        <span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">li</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">li2</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;markers&quot;</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">li</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                        <span class="n">row</span> <span class="o">=</span> <span class="n">c_row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">c_col</span>
+                    <span class="p">)</span>
+                    
+                    <span class="n">c_col</span> <span class="o">=</span> <span class="n">c_col</span> <span class="o">+</span> <span class="mi">1</span>
+                
+                <span class="k">return</span> <span class="n">fig</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;There is not correspondency between variables&quot;</span><span class="p">)</span>
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;There aren&#39;t duplicated variables&quot;</span><span class="p">)</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Positions must be integer.&quot;</span><span class="p">)</span>
+        <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<span class="c1">###############################################################################</span>
+        
+<span class="c1">#                      MACHINE LEARNING VISUALIZATIONS</span>
+
+<span class="c1">###############################################################################   </span>
+
+
+<div class="viewcode-block" id="plot_prec_recall_vs_thresh"><a class="viewcode-back" href="../../src.html#src.visualize.plot_prec_recall_vs_thresh">[docs]</a><span class="k">def</span> <span class="nf">plot_prec_recall_vs_thresh</span><span class="p">(</span><span class="n">testy</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates the curve between Precision-Real and Thresholds.</span>
+
+<span class="sd">    :param testy: Real value of a dataset if  a ML algorithm has been applied.</span>
+<span class="sd">    :type testy: list</span>
+<span class="sd">    :param predictions: Result of apply ML on the dataset.</span>
+<span class="sd">    :type predictions: list</span>
+
+<span class="sd">    :return: Figure that contains the plot showing the precision recall curve over thresholds.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+  
+    <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="n">precision_recall_curve</span><span class="p">(</span><span class="n">testy</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+      
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
+    
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">precision</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Precision&quot;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">)))</span>
+    
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">thresholds</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">recall</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Recall&quot;</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">)))</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="plot_roc"><a class="viewcode-back" href="../../src.html#src.visualize.plot_roc">[docs]</a><span class="k">def</span> <span class="nf">plot_roc</span><span class="p">(</span><span class="n">testy</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a ROC Curve.</span>
+
+<span class="sd">    :param testy: Real value of a dataset if  a ML algorithm has been applied.</span>
+<span class="sd">    :type testy: list</span>
+<span class="sd">    :param predictions: Result of apply ML on the dataset.</span>
+<span class="sd">    :type predictions: list</span>
+
+<span class="sd">    :return: Figure that contains the ROC Curve of the Real Value and Predictions.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">testy</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+    
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">fpr</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">tpr</span><span class="p">,</span>
+    <span class="p">)</span>
+    
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_shape</span><span class="p">(</span>
+        <span class="nb">type</span> <span class="o">=</span> <span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">),</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y0</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<div class="viewcode-block" id="plot_prc"><a class="viewcode-back" href="../../src.html#src.visualize.plot_prc">[docs]</a><span class="k">def</span> <span class="nf">plot_prc</span><span class="p">(</span><span class="n">testy</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a Precision-Recall (PR) Curve.</span>
+
+<span class="sd">    :param testy: Real value of a dataset if  a ML algorithm has been applied.</span>
+<span class="sd">    :type testy: list</span>
+<span class="sd">    :param predictions: Result of apply ML on the dataset.</span>
+<span class="sd">    :type predictions: list</span>
+
+<span class="sd">    :return: Figure that contains the PR Curve of the Real Value and Predictions.</span>
+<span class="sd">    :rtype: Figure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">precision_recall_curve</span><span class="p">(</span><span class="n">testy</span><span class="p">,</span> <span class="n">predictions</span><span class="p">)</span>
+   
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
+    
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">recall</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">precision</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;PR Curve&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">))</span>
+    
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">line</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">)))</span>
+    
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<span class="c1"># https://stackoverflow.com/questions/60860121/plotly-how-to-make-an-annotated-confusion-matrix-using-a-heatmap   </span>
+<div class="viewcode-block" id="plot_confusion_matrix"><a class="viewcode-back" href="../../src.html#src.visualize.plot_confusion_matrix">[docs]</a><span class="k">def</span> <span class="nf">plot_confusion_matrix</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">label_list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;Viridis&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a figure with the Confusion Matrix as Heatmap.</span>
+
+<span class="sd">    :param matrix: Contains the elements and data of a confusion matrix.</span>
+<span class="sd">    :type matrix: list[list]</span>
+<span class="sd">    :param label_list: Used as value of axis. Defaults to None.</span>
+<span class="sd">    :type label_list: list</span>
+<span class="sd">    :param color: color spectrum used on heatmap. Defaults to &#39;Viridis&#39;.</span>
+<span class="sd">    :type color: list</span>
+
+<span class="sd">    :return: Figure that contains the heatmap showing the colored confusion matrix.</span>
+<span class="sd">    :rtype: Figure</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">ut</span><span class="o">.</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">create_annotated_heatmap</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">label_list</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">label_list</span><span class="p">,</span> <span class="n">colorscale</span> <span class="o">=</span> <span class="n">color</span><span class="p">)</span>
+        
+        <span class="c1"># add colorbar</span>
+        <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;showscale&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="k">return</span> <span class="n">fig</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Input data must be a matrix&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Alba Casillas Rodríguez.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+<style>
+    .wy-nav-content-wrap {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+        display: block;
+    }
+
+    .wy-nav-content {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+    }
+
+    .rst-content {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search,
+    .wy-nav-top {
+        background: hsl(0, 2%, 10%);
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+        background: #85e4a5;
+    }
+
+    .caption {
+        background: hsl(0, 0%, 100%);
+    }
+
+    .caption-text {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a:hover {
+        color: hsl(0, 0%, 100%)
+    }
+</style>
+
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+.. GeneFlow documentation master file, created by
+   sphinx-quickstart on Wed Sep  7 02:29:17 2022.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+
+GeneFlow: Tool to analyze gene expression data
+====================================
+
+GeneFlow is a scalable and flexible software library that encompasses data acquisition methods,
+preprocessing techniques, data analytics, data visualization, and Machine Learning algorithms 
+that can be applied to genomic data. 
+
+* Enable users to work with several datasets simultaneously without having to worry about low-level implementation details.
+
+* Represents the process workflow in a semi-structured format in order to facilitate the realization of complex experiments.
+
+* Provides the ability of replaying a complete workflow to reconstruct the steps so that experiments can be reproduced and replicated as needed or applied to different datasets.
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: GeneFlow:
+
+   geneflow
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Modules:
+
+   modules
+

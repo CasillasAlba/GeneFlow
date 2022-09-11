@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.objects &mdash; GeneFlow 0.8 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html"><img src="../../_static/geneflow_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">GeneFlow:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../geneflow.html">GeneFlow</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html">DataObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.etl">ETL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.model">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.objects">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.processing">Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.utils">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.visualize">Visualize</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeneFlow</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>src.objects</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.objects</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">@author: Alba Casillas Rodríguez (albacaro@correo.ugr.es)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">genericpath</span> <span class="kn">import</span> <span class="n">exists</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">src.processing</span> <span class="kn">import</span> <span class="n">Task</span>
+
+
+<div class="viewcode-block" id="GDCQuery"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery">[docs]</a><span class="k">class</span> <span class="nc">GDCQuery</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;This is a conceptual class representation of a request of data</span>
+<span class="sd">    from Genomic Data Commoms (GDC) portal (https://portal.gdc.cancer.gov/)</span>
+<span class="sd">    by using the GDC API (https://gdc.cancer.gov/developers/gdc-application-programming-interface-api).</span>
+<span class="sd">    </span>
+<span class="sd">    :param project: Cancer name or ID to download. E.g: &quot;TCGA-BRCA&quot;, </span>
+<span class="sd">        &quot;Acute Myeloid Leukemia&quot;, &quot;adrenocortical carcinoma&quot; ...</span>
+<span class="sd">    :type project: str </span>
+<span class="sd">    :param experimental_strategy: Experimental strategies used for molecular</span>
+<span class="sd">        characterization of the cancer.</span>
+<span class="sd">    :type experimental_strategy: str</span>
+<span class="sd">    :param data_category: A high-level data file category. E.g &quot;Raw Sequencing</span>
+<span class="sd">        Data&quot; or &quot;Transcriptome Profiling&quot;, dafults to None</span>
+<span class="sd">    :type data_category: str, optional</span>
+<span class="sd">    :param data_type: Data file type. Data Type is more granular than Data Category.</span>
+<span class="sd">        E.g: &quot;Align Reads&quot; or &quot;Gene Expression Quantification&quot;, defaults to None.</span>
+<span class="sd">    :type data_type: str, optional</span>
+<span class="sd">    :param workflow_type: Bioinformatics workflow used to generate or harmonize</span>
+<span class="sd">        the data file. E.g: &quot;STAR - Counts&quot;, &quot;BCGSC miRNA Profiling&quot;, defaults to None.</span>
+<span class="sd">    :type workflow_type: str, optional</span>
+<span class="sd">    :param legacy: The GCD Legacy Archive hosts unharmonized legacy dara from repositories</span>
+<span class="sd">        that predate the GDC (e.g: CGHub). Legacy data is not actively maintained, processed, or</span>
+<span class="sd">        harmonized by the GDC. Legacy is &#39;True&#39; to search for data in the GDC Legacy Archive,</span>
+<span class="sd">        and &#39;False&#39; otherwise; defaults to &#39;False&#39;.</span>
+<span class="sd">    :type legacy: bool</span>
+<span class="sd">    :param platform: Technolofical platform on which experimental data was produced.</span>
+<span class="sd">        E.g: &quot;Illumina Human Methylation 450&quot;, defaults to None. </span>
+<span class="sd">    :type platform: str, optional</span>
+<span class="sd">    :param data_format: Format of the Data File, defaults to None.</span>
+<span class="sd">    :type data_format: str, optional</span>
+<span class="sd">    :param sample_type: Describes the source of a biospecimen used for a laboratory test. </span>
+<span class="sd">        E.g: &quot;Primary Tumor&quot;, [&quot;Primary Tumor&quot;, &quot;Solid Tissue Normal&quot;], defaults to None.</span>
+<span class="sd">    :type sample_type: list, str, optional</span>
+<span class="sd">    :param normalized: This parameter is only valid when legacy is set as &#39;True&#39;.</span>
+<span class="sd">        If &#39;True&#39;, normalized data from the GDC Legacy Archive will be downloaded, </span>
+<span class="sd">        and &#39;False&#39; otherwise; defaults to &#39;False&#39;.</span>
+<span class="sd">    :type normalized: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project</span> <span class="p">,</span><span class="n">experimental_strategy</span><span class="p">,</span> <span class="n">data_category</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">workflow_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">legacy</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>  <span class="n">platform</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">data_format</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sample_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">normalized</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="sd">&quot;&quot;&quot;Constructor method</span>
+<span class="sd">        &quot;&quot;&quot;</span>   
+        <span class="bp">self</span><span class="o">.</span><span class="n">project</span> <span class="o">=</span> <span class="n">project</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_category</span> <span class="o">=</span> <span class="n">data_category</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">data_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workflow_type</span> <span class="o">=</span> <span class="n">workflow_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">legacy</span> <span class="o">=</span> <span class="n">legacy</span>
+        <span class="c1"># Direclty set as &quot;open&quot; because normal users cannot search in the &quot;controlled&quot; acces archives.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="s2">&quot;open&quot;</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">platform</span> <span class="o">=</span> <span class="n">platform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_format</span> <span class="o">=</span> <span class="n">data_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experimental_strategy</span> <span class="o">=</span> <span class="n">experimental_strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span> <span class="o">=</span> <span class="n">sample_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalized</span> <span class="o">=</span> <span class="n">normalized</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="s2">&quot;normalized_results&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    GET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GDCQuery.get_project"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_project">[docs]</a>    <span class="k">def</span> <span class="nf">get_project</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the name of the project.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The name of the project.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_data_category"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_data_category">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_category</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the category of the data.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Data Category.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_category</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_data_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_data_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the type of the data.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Data Type.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_workflow_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_workflow_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_workflow_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Worflow Type of the data.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Workflow Type.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">workflow_type</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_legacy"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_legacy">[docs]</a>    <span class="k">def</span> <span class="nf">get_legacy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a boolean specifying if the data will be downloaded</span>
+<span class="sd">        from the GDC database or the GDC Legacy Archive.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The data source where the data will be downloaded.</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">legacy</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_access"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_access">[docs]</a>    <span class="k">def</span> <span class="nf">get_access</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the type of access.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The type of access of the request.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_platform"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_platform">[docs]</a>    <span class="k">def</span> <span class="nf">get_platform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string the platform where data was produced</span>
+<span class="sd">        </span>
+<span class="sd">        :return:  platform where data was produced.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">platform</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_data_format"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_data_format">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the format of the data</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Format of the data.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_format</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_experimental_strategy"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_experimental_strategy">[docs]</a>    <span class="k">def</span> <span class="nf">get_experimental_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Experimental Strategy of the data.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Experimental Strategy of the data.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">experimental_strategy</span></div>
+    
+<div class="viewcode-block" id="GDCQuery.get_sample_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_sample_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_sample_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Biospecimen source of the data.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Type of the sample (Biospecimen source)</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span></div>
+
+<div class="viewcode-block" id="GDCQuery.get_file_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_file_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_file_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the name of the project.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The name of the project.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_type</span></div>
+
+<div class="viewcode-block" id="GDCQuery.get_normalized"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.get_normalized">[docs]</a>    <span class="k">def</span> <span class="nf">get_normalized</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a boolean value that indicates if the data from</span>
+<span class="sd">            the GDC Legacy Archive is normalized or not</span>
+<span class="sd">        </span>
+<span class="sd">        :return: Whether data is normalized or not.</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized</span></div>
+    
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GDCQuery.set_project"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_project">[docs]</a>    <span class="k">def</span> <span class="nf">set_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set project&#39;s name value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param project: Name of the project.</span>
+<span class="sd">        :type project: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project</span> <span class="o">=</span> <span class="n">project</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_data_category"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_data_category">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_category</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_category</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Data Category value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data_category: Type of Data Category to download.</span>
+<span class="sd">        :type data_category: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_category</span> <span class="o">=</span> <span class="n">data_category</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_data_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_data_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Data Type value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data_type: Type of the data to download.</span>
+<span class="sd">        :type data_type: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">data_type</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_workflow_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_workflow_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_workflow_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">workflow_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Workflow Type value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param workflow_type: Workflw Type to download.</span>
+<span class="sd">        :type workflow_type: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workflow_type</span> <span class="o">=</span> <span class="n">workflow_type</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_legacy"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_legacy">[docs]</a>    <span class="k">def</span> <span class="nf">set_legacy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">legacy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Legacy&#39;s value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param legacy: Legacy boolean value.</span>
+<span class="sd">        :type legacy: bool </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">legacy</span> <span class="o">=</span> <span class="n">legacy</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_platform"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_platform">[docs]</a>    <span class="k">def</span> <span class="nf">set_platform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">platform</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the platform.</span>
+<span class="sd">        </span>
+<span class="sd">        :param platform: platform where data was produced</span>
+<span class="sd">        :type platform: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">platform</span> <span class="o">=</span> <span class="n">platform</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_data_format"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_data_format">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_format</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Data Format value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data_format: Format of the data to download.</span>
+<span class="sd">        :type data_format: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_format</span> <span class="o">=</span> <span class="n">data_format</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_experimental_strategy"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_experimental_strategy">[docs]</a>    <span class="k">def</span> <span class="nf">set_experimental_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experimental_strategy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the Experimental Strategy value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param experimental_strategy: Tye of Experimental Strategy to download.</span>
+<span class="sd">        :type experimental_strategy: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experimental_strategy</span> <span class="o">=</span> <span class="n">experimental_strategy</span></div>
+
+<div class="viewcode-block" id="GDCQuery.set_sample_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_sample_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_sample_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Sample Type value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param sample_type: Type of the biospecimen&#39;s source to download.</span>
+<span class="sd">        :type sample_type: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_type</span> <span class="o">=</span> <span class="n">sample_type</span></div>
+        
+<div class="viewcode-block" id="GDCQuery.set_file_type"><a class="viewcode-back" href="../../src.html#src.objects.GDCQuery.set_file_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_file_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set File Type value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param file_type: Set if data is normalized or not to download from</span>
+<span class="sd">            GDC Legacy Archive.</span>
+<span class="sd">        :type file_type: bool </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="n">file_type</span></div></div>
+
+
+
+<div class="viewcode-block" id="DataProject"><a class="viewcode-back" href="../../src.html#src.objects.DataProject">[docs]</a><span class="k">class</span> <span class="nc">DataProject</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;This is a conceptual class representation a single downloaded project.</span>
+<span class="sd">    Essential information such as the project&#39;s name, the path where it has been downloaded,</span>
+<span class="sd">    the list of related files and the total size of the project is saved.</span>
+<span class="sd">    </span>
+<span class="sd">    :param project_name: Name of the projects. Defaults to &quot;&quot; (None).</span>
+<span class="sd">    :type project_name: str</span>
+<span class="sd">    :param project_name: Directory of the path where the project has been downloaded.</span>
+<span class="sd">        Defaults to &quot;&quot; (None - Current directory).</span>
+<span class="sd">    :type project_name: str  </span>
+<span class="sd">    :param project_name: List of FileProject objects regarding the downloaded files.</span>
+<span class="sd">        Deafults to [] (empty list).</span>
+<span class="sd">    :type project_name: list[FileProject]  </span>
+<span class="sd">    :param project_name: Total size of the project in MBs. Defaults to &#39;0.0&#39;.</span>
+<span class="sd">    :type project_name: int  </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="sd">&quot;&quot;&quot;Constructor method</span>
+<span class="sd">        &quot;&quot;&quot;</span>          
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir_path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="c1"># For example, TCGA/</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># List of FileProject objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size_download</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    GET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DataProject.get_project_name"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.get_project_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_project_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the name of the project.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The name of the project.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_name</span></div>
+
+<div class="viewcode-block" id="DataProject.get_dir_path"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.get_dir_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_dir_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with directory of the path where the project</span>
+<span class="sd">            has been downloaded.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The directory path of the project.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dir_path</span></div>
+
+<div class="viewcode-block" id="DataProject.get_files"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.get_files">[docs]</a>    <span class="k">def</span> <span class="nf">get_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a list of FileProject objects regarding the downloaded files.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: List of FileProject objects.</span>
+<span class="sd">        :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span></div>
+
+<div class="viewcode-block" id="DataProject.get_size_download"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.get_size_download">[docs]</a>    <span class="k">def</span> <span class="nf">get_size_download</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the total size of the project in MBs.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The size of the project in MBs.</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size_download</span></div>
+
+<div class="viewcode-block" id="DataProject.get_total_files"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.get_total_files">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a integer with the number of the files downloaded.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The number of files downloaded.</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">)</span></div>
+
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DataProject.set_project_name"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.set_project_name">[docs]</a>    <span class="k">def</span> <span class="nf">set_project_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the project&#39;s name value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param project_name: Name of the project.  </span>
+<span class="sd">            Match with the ID of the cancer downloaded.</span>
+<span class="sd">        :type project_name: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_name</span> <span class="o">=</span> <span class="n">project_name</span></div>
+
+<div class="viewcode-block" id="DataProject.set_dir_path"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.set_dir_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_dir_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dir_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the directory path where the project has been downloaded.</span>
+<span class="sd">        </span>
+<span class="sd">        :param dir_path: Directory path of the project.</span>
+<span class="sd">        :type dir_path: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir_path</span> <span class="o">=</span> <span class="n">dir_path</span></div>
+
+<div class="viewcode-block" id="DataProject.set_files"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.set_files">[docs]</a>    <span class="k">def</span> <span class="nf">set_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update theFileProject objects&#39; list.</span>
+<span class="sd">        </span>
+<span class="sd">        :param files: list of downloaded files</span>
+<span class="sd">        :type files: list </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">files</span>        </div>
+    
+<div class="viewcode-block" id="DataProject.plus_size_download"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.plus_size_download">[docs]</a>    <span class="k">def</span> <span class="nf">plus_size_download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mbs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the size of the project calculating the</span>
+<span class="sd">            total sum of all downloaded files in MBs.</span>
+<span class="sd">        </span>
+<span class="sd">        :param mbs: MBs of each file already downloaded.</span>
+<span class="sd">        :type mbs: int </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size_download</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size_download</span> <span class="o">+</span> <span class="n">mbs</span></div>
+
+    
+<div class="viewcode-block" id="DataProject.to_string"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Print info about the project.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data Project&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Project Name: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_project_name</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Directory Path: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dir_path</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Total Files: &quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_files</span><span class="p">()))</span>
+        <span class="nb">print</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataProject.add_file"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.add_file">[docs]</a>    <span class="k">def</span> <span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fObject</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a new FileObject to the FileObject objects&#39; list.</span>
+<span class="sd">        </span>
+<span class="sd">        :param fObject: FileObject to add.</span>
+<span class="sd">        :type: FileObject</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fObject</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataProject.formatted_path"><a class="viewcode-back" href="../../src.html#src.objects.DataProject.formatted_path">[docs]</a>    <span class="k">def</span> <span class="nf">formatted_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fObject</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the full path where a file is located.</span>
+<span class="sd">        </span>
+<span class="sd">        :param fObject: the FileObject to format its path.</span>
+<span class="sd">        :type fObject: FileObject</span>
+
+<span class="sd">        :return: the full path where fObject is saved. </span>
+<span class="sd">            It is composed of the directory path where the project was downloaded,</span>
+<span class="sd">            the id of fObject and the File Name of fObject.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dir_path</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">fObject</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">fObject</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span></div></div>
+    
+
+
+<div class="viewcode-block" id="FileProject"><a class="viewcode-back" href="../../src.html#src.objects.FileProject">[docs]</a><span class="k">class</span> <span class="nc">FileProject</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;This is a conceptual class representation of the information and features</span>
+<span class="sd">    of a downloaded file. Only the id_ will be a mandatory field due to the differences</span>
+<span class="sd">    in the information that different data sources can provide.</span>
+<span class="sd">    </span>
+<span class="sd">    :param id_: UUID of the file. E.g: 48d05650-971e-4407-9cf1-7e9d71b1ff20</span>
+<span class="sd">    :type id_: str  </span>
+<span class="sd">    :param data_format: Format of the Data File, defaults to None.</span>
+<span class="sd">    :type data_format: str, optional</span>
+<span class="sd">    :param access: Indicator of whether acces to the data file is open or controlled,</span>
+<span class="sd">        defaults to None.</span>
+<span class="sd">    :type access: str, optional</span>
+<span class="sd">    :param file_name: Name of the file. </span>
+<span class="sd">        E.g: BLAIN_p_TCGA_282_304_b2_N_GenomeWideSNP_6_G08_1348614.grch38.seg.v2.txt, defaults to None.</span>
+<span class="sd">    :type file_name: str, optional</span>
+<span class="sd">    :param submitter_id: A unique key to identify the case. Submitter ID is different from the universally</span>
+<span class="sd">        unique identifier (UUID). E.g: 7f4e8b00-d73f-479e-a8f7-30a8d7aee093_dr12_allcnv, defaults to None.</span>
+<span class="sd">    :type submitter_id: str, optional  </span>
+<span class="sd">    :param data_category: A high-level data file category. E.g &quot;Raw Sequencing</span>
+<span class="sd">        Data&quot; or &quot;Transcriptome Profiling&quot;, dafults to None</span>
+<span class="sd">    :type data_category: str, optional   </span>
+<span class="sd">    :param type_: Type of the File, defaults to None.</span>
+<span class="sd">    :type type_: str, optional   </span>
+<span class="sd">    :param file_size: Size of the file in MB, defaults to None.</span>
+<span class="sd">    :type file_size: int, optional</span>
+<span class="sd">    :param created_datetime: Datetime of when the file has been created.</span>
+<span class="sd">    :type created_datetime: datetime, optional</span>
+<span class="sd">    :param md5sum: hash code. MD5 Checksum is used to verify the integrity of files,</span>
+<span class="sd">        as virtually any change to a file will cause its MD5 hash to change.</span>
+<span class="sd">    :type md5sum: str, optional</span>
+<span class="sd">    :param updated_datetime: Datetatime of when a file had its latest update.</span>
+<span class="sd">    :type updated_datetime: datetime, optional</span>
+<span class="sd">    :param data_type: Data file type. Data Type is more granular than Data Category.</span>
+<span class="sd">        E.g: &quot;Align Reads&quot; or &quot;Gene Expression Quantification&quot;, defaults to None.</span>
+<span class="sd">    :type data_type: str, optional</span>
+<span class="sd">    :param state: Current state of the file. E.g: &quot;releassed&quot;, defaults to None.</span>
+<span class="sd">    :type state: str, optional</span>
+<span class="sd">    :param experimental_strategy: Experimental strategies used for molecular</span>
+<span class="sd">        characterization of the cancer.</span>
+<span class="sd">    :type experimental_strategy: str, optional</span>
+<span class="sd">    :param version: Number of the current version of the file.</span>
+<span class="sd">    :type version: int, float, optional</span>
+<span class="sd">    :param data_release: Number of the data release.</span>
+<span class="sd">    :type data_release: float, optional</span>
+<span class="sd">    :param entity_id: Also defined as Barcode. Entity ID is the primary identifier of</span>
+<span class="sd">        biospecimen data within the TCGA project. E.g: TCGA-OR-A5JL-01A-11D-A29H-01, defaults to None.</span>
+<span class="sd">    :type entity_id: str, optional</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="p">,</span> <span class="n">data_format</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">access</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">file_name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">submitter_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">data_category</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">type_</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">file_size</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">created_datetime</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">md5sum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">updated_datetime</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="n">experimental_strategy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">version</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">data_release</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">entity_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> 
+        <span class="sd">&quot;&quot;&quot;Constructor method</span>
+<span class="sd">        &quot;&quot;&quot;</span>  
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="n">id_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_format</span> <span class="o">=</span> <span class="n">data_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="n">access</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">submitter_id</span> <span class="o">=</span> <span class="n">submitter_id</span> <span class="c1"># uuid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_category</span> <span class="o">=</span> <span class="n">data_category</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">type_</span> <span class="c1"># format (TSV, CSV, TXT...)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_size</span> <span class="o">=</span> <span class="n">file_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">created_datetime</span> <span class="o">=</span> <span class="n">created_datetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md5sum</span> <span class="o">=</span> <span class="n">md5sum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">updated_datetime</span> <span class="o">=</span> <span class="n">updated_datetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">data_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experimental_strategy</span> <span class="o">=</span> <span class="n">experimental_strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_release</span> <span class="o">=</span> <span class="n">data_release</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entity_id</span> <span class="o">=</span> <span class="n">entity_id</span>
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    GET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FileProject.get_id"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the UUID of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The UUID of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_</span></div>
+
+<div class="viewcode-block" id="FileProject.get_data_format"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_data_format">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Format of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Format of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_format</span></div>
+
+<div class="viewcode-block" id="FileProject.get_access"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_access">[docs]</a>    <span class="k">def</span> <span class="nf">get_access</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string whether the access is open or controlled.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The type of Access of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">access</span></div>
+
+<div class="viewcode-block" id="FileProject.get_file_name"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_file_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_file_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the name of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The name of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span></div>
+
+<div class="viewcode-block" id="FileProject.get_submitter_id"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_submitter_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_submitter_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the unique key to identify the case.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The ID to identify the case of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">submitter_id</span></div>
+
+<div class="viewcode-block" id="FileProject.get_data_category"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_data_category">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_category</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Data Category of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Data Category of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_category</span></div>
+
+<div class="viewcode-block" id="FileProject.get_type"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Format of the file (txt, tsv...)</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The format of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span></div>
+
+<div class="viewcode-block" id="FileProject.get_file_size"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_file_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_file_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a integer with the size of the file in MB.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The size of the file in MB.</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_size</span></div>
+
+<div class="viewcode-block" id="FileProject.get_created_datetime"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_created_datetime">[docs]</a>    <span class="k">def</span> <span class="nf">get_created_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the date-time of the creation of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The datetime of the creation of the file.</span>
+<span class="sd">        :rtype: datetime</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_datetime</span></div>
+
+<div class="viewcode-block" id="FileProject.get_md5sum"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_md5sum">[docs]</a>    <span class="k">def</span> <span class="nf">get_md5sum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the MD5 Checksum hash code.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: A MD5 Checksum hash code.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">md5sum</span></div>
+
+<div class="viewcode-block" id="FileProject.get_updated_datatime"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_updated_datatime">[docs]</a>    <span class="k">def</span> <span class="nf">get_updated_datatime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns date-time of the latest update of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The datetime of the the latest update of the file.</span>
+<span class="sd">        :rtype: datetime</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">updated_datetime</span></div>
+
+<div class="viewcode-block" id="FileProject.get_data_type"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_data_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the type of the file</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Data Type of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span></div>
+
+<div class="viewcode-block" id="FileProject.get_state"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_state">[docs]</a>    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the state of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The state of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span></div>
+
+<div class="viewcode-block" id="FileProject.get_experimental_strategy"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_experimental_strategy">[docs]</a>    <span class="k">def</span> <span class="nf">get_experimental_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Experimental Strategy of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Experimental Strategy of the file.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">experimental_strategy</span></div>
+
+<div class="viewcode-block" id="FileProject.get_version"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_version">[docs]</a>    <span class="k">def</span> <span class="nf">get_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns an integer/float with the version of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The current version of the file.</span>
+<span class="sd">        :rtype: int, float.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span></div>
+
+<div class="viewcode-block" id="FileProject.get_data_release"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_data_release">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_release</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a float number with the data release.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The data release.</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_release</span></div>
+
+<div class="viewcode-block" id="FileProject.get_entity_id"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.get_entity_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_entity_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the Entity ID/Barcode of a TCGA&#39;s file.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The Entity ID of a file</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity_id</span></div>
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    SET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FileProject.set_id"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_id">[docs]</a>    <span class="k">def</span> <span class="nf">set_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the file&#39;s id value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param id_: UUID of the file.</span>
+<span class="sd">        :type id_: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_</span> <span class="o">=</span> <span class="n">id_</span></div>
+
+<div class="viewcode-block" id="FileProject.set_data_format"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_data_format">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_format</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Data Format value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data_format: Data Format of the file.</span>
+<span class="sd">        :type data_format: str </span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_format</span> <span class="o">=</span> <span class="n">data_format</span></div>
+
+<div class="viewcode-block" id="FileProject.set_access"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_access">[docs]</a>    <span class="k">def</span> <span class="nf">set_access</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">access</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the access type of the file, indicating if it is a</span>
+<span class="sd">        open or controlled file.</span>
+<span class="sd">        </span>
+<span class="sd">        :param access: Type of access of the file.</span>
+<span class="sd">        :type access: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">access</span> <span class="o">=</span> <span class="n">access</span></div>
+
+<div class="viewcode-block" id="FileProject.set_file_name"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_file_name">[docs]</a>    <span class="k">def</span> <span class="nf">set_file_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the file&#39;s name value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param file_name: Name of the file downloaded.</span>
+<span class="sd">        :type file_name: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span></div>
+
+<div class="viewcode-block" id="FileProject.set_submitter_id"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_submitter_id">[docs]</a>    <span class="k">def</span> <span class="nf">set_submitter_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">submitter_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the unique key to identify the case.</span>
+<span class="sd">        </span>
+<span class="sd">        :param submitter_id: The ID to identify the case.</span>
+<span class="sd">        :type submitter_id: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">submitter_id</span> <span class="o">=</span> <span class="n">submitter_id</span></div>
+
+<div class="viewcode-block" id="FileProject.set_data_category"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_data_category">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_category</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_category</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Data Category value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data_category: Data Category of the file.</span>
+<span class="sd">        :type data_category: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_category</span> <span class="o">=</span> <span class="n">data_category</span></div>
+
+<div class="viewcode-block" id="FileProject.set_type"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">type_</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the Format of the file (txt, tsv...)</span>
+<span class="sd">        </span>
+<span class="sd">        :param type_: Format of the file.</span>
+<span class="sd">        :type type_: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">type_</span></div>
+
+<div class="viewcode-block" id="FileProject.set_file_size"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_file_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_file_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the file size in MBs.</span>
+<span class="sd">        </span>
+<span class="sd">        :param file_size: Size of the file in MB.</span>
+<span class="sd">        :type file_size: int </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_size</span> <span class="o">=</span> <span class="n">file_size</span></div>
+
+<div class="viewcode-block" id="FileProject.set_created_datetime"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_created_datetime">[docs]</a>    <span class="k">def</span> <span class="nf">set_created_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">created_datetime</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the datetime of the creation of the file</span>
+<span class="sd">        </span>
+<span class="sd">        :param created_datetime: Creation&#39;s datetime.</span>
+<span class="sd">        :type created_datetime: datetime </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">created_datetime</span> <span class="o">=</span> <span class="n">created_datetime</span></div>
+
+<div class="viewcode-block" id="FileProject.set_md5sum"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_md5sum">[docs]</a>    <span class="k">def</span> <span class="nf">set_md5sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">md5sum</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the MD5 Checksum hash code.</span>
+<span class="sd">        </span>
+<span class="sd">        :param md5sum: MD5 Checksum hash code.</span>
+<span class="sd">        :type md5sum: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md5sum</span> <span class="o">=</span> <span class="n">md5sum</span></div>
+
+<div class="viewcode-block" id="FileProject.set_updated_datatime"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_updated_datatime">[docs]</a>    <span class="k">def</span> <span class="nf">set_updated_datatime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">updated_datetime</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the last update&#39;s datetame</span>
+<span class="sd">        </span>
+<span class="sd">        :param updated_datetime: Latest update&#39;s datetime&#39;</span>
+<span class="sd">        :type updated_datetime: datetime </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">updated_datetime</span> <span class="o">=</span> <span class="n">updated_datetime</span></div>
+
+<div class="viewcode-block" id="FileProject.set_data_type"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_data_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the Type of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :param type_: Data Type of the file.</span>
+<span class="sd">        :type type_: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">data_type</span></div>
+
+<div class="viewcode-block" id="FileProject.set_state"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_state">[docs]</a>    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the state of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :param state: status of the file.</span>
+<span class="sd">        :type state: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="FileProject.set_experimental_strategy"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_experimental_strategy">[docs]</a>    <span class="k">def</span> <span class="nf">set_experimental_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experimental_strategy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the Experimental Strategy value.</span>
+<span class="sd">        </span>
+<span class="sd">        :param experimental_strategy: Tye of Experimental Strategy of the file.</span>
+<span class="sd">        :type experimental_strategy: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experimental_strategy</span> <span class="o">=</span> <span class="n">experimental_strategy</span></div>
+
+<div class="viewcode-block" id="FileProject.set_version"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_version">[docs]</a>    <span class="k">def</span> <span class="nf">set_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the version of the file.</span>
+<span class="sd">        </span>
+<span class="sd">        :param version: Latest version of the file.</span>
+<span class="sd">        :type version: int, float </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span></div>
+
+<div class="viewcode-block" id="FileProject.set_data_release"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_data_release">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_release</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set a number for the released data.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data_release: Data release indicator of the file</span>
+<span class="sd">        :type data_release: float </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_release</span> <span class="o">=</span> <span class="n">data_release</span></div>
+    
+<div class="viewcode-block" id="FileProject.set_entity_id"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.set_entity_id">[docs]</a>    <span class="k">def</span> <span class="nf">set_entity_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entity_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set barcode&#39;s ID for a TCGA file.</span>
+<span class="sd">        </span>
+<span class="sd">        :param entity_id: Entity ID / Barcode of the file.</span>
+<span class="sd">        :type entity_id: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entity_id</span> <span class="o">=</span> <span class="n">entity_id</span></div>
+
+<div class="viewcode-block" id="FileProject.to_string"><a class="viewcode-back" href="../../src.html#src.objects.FileProject.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Print info about the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;File&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">ID: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_id</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Data Format: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_format</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Access: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_access</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">File Name: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Submitter ID: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_submitter_id</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Data Category: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_category</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Type: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_type</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">File Size: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_size</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Created Datetime: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_created_datetime</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Md5sum: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_md5sum</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Updated Datetime: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_updated_datatime</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Data Type: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_type</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">State: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_state</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Experimental Strategy: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_experimental_strategy</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Version: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_version</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Data Release: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_release</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Entity ID: &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_entity_id</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">()</span></div></div>
+ 
+
+<div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../src.html#src.objects.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Task that represents the workflow of a program.</span>
+<span class="sd">    The methods executed over the data can be saved and applied over bulk data </span>
+<span class="sd">    to replicate/expand the same analysis in the future.</span>
+<span class="sd">    </span>
+<span class="sd">    :param tasks: List of Task objects that creates a pipeline/workflow of Tasks.</span>
+<span class="sd">        Defaults to [] (empty list).</span>
+<span class="sd">    :type workflow: list[Log]  </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="sd">&quot;&quot;&quot;Constructor method</span>
+<span class="sd">    &quot;&quot;&quot;</span>  
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="Workflow.get_parameters"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.get_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns a dictionary with all parameters needed to</span>
+<span class="sd">            initialize the class object to apply a Task.</span>
+<span class="sd">            It allows to implement Reflection</span>
+
+<span class="sd">        :return: a dictionary with all parameters</span>
+<span class="sd">        :rtype: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;tasks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span>
+        <span class="k">return</span> <span class="n">parameters</span></div>
+
+<div class="viewcode-block" id="Workflow.set_parameters"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.set_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update the initial parameters to specific arguments</span>
+<span class="sd">            for a Task necessary for a Task to apply its functionality.</span>
+
+<span class="sd">        :param parameters: a dictionary with specific parameters</span>
+<span class="sd">        :type parameters: dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;tasks&#39;</span><span class="p">]</span></div>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    GET</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        
+<div class="viewcode-block" id="Workflow.get_tasks"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.get_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">get_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the list of Task objects that represent a pipeline/workflow.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: the list of Task objects that represent a pipeline/workflow.</span>
+<span class="sd">        :rtype: list[Task].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span></div>
+    
+<div class="viewcode-block" id="Workflow.get_len_workflow"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.get_len_workflow">[docs]</a>    <span class="k">def</span> <span class="nf">get_len_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the number of Task objects that are in the current workflow.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: Number of Task objects that are in the current workflow.</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Workflow.add_function"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.add_function">[docs]</a>    <span class="k">def</span> <span class="nf">add_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">descp</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a Task to the Workflow.</span>
+<span class="sd">        </span>
+<span class="sd">        :param method: Task to add in the workflow.</span>
+<span class="sd">        :type method: Task </span>
+<span class="sd">        :param method: Title/Name of the Task. Defaults to &quot;&quot; (None).</span>
+<span class="sd">        :type method: str </span>
+<span class="sd">        :param method: Description to explain what the Task does. </span>
+<span class="sd">            Defaults to &quot;&quot; (None).</span>
+<span class="sd">        :type method: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_tasks</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">method</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Workflow.apply"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.apply">[docs]</a>    <span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sequentially apply all Log Objects (Tasks) in the Workflow to a given object.</span>
+<span class="sd">            It could be, for example, a DataObject or a DataFrame.</span>
+<span class="sd">        </span>
+<span class="sd">        :param obj: Object to apply the Workflow to.</span>
+<span class="sd">        :type obj: DataObject, DataFrame</span>
+
+<span class="sd">        :return: The object with all the Tasks applied.</span>
+<span class="sd">        :rtype: DataObject, DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tasks</span><span class="p">():</span>
+            
+            <span class="n">do</span> <span class="o">=</span> <span class="n">pip</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">do</span></div>
+    
+            
+<div class="viewcode-block" id="Workflow.remove_last_function"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.remove_last_function">[docs]</a>    <span class="k">def</span> <span class="nf">remove_last_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Removes from the Workflow the last function that was added to it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tasks</span><span class="p">())</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Workflow.generate_json"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.generate_json">[docs]</a>    <span class="k">def</span> <span class="nf">generate_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate an external file to save every Log object of Workflow</span>
+
+<span class="sd">        :param path: file where dictionary generates will be saved</span>
+<span class="sd">        :type: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">saved</span> <span class="o">=</span> <span class="s2">&quot;workflow.json&quot;</span>
+
+        <span class="k">if</span> <span class="n">path</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">saved</span> <span class="o">=</span> <span class="n">path</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">exists</span><span class="p">(</span><span class="n">saved</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">open</span><span class="p">(</span><span class="n">saved</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error. Unable to open or create </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">saved</span><span class="p">))</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">list_task</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tasks</span><span class="p">():</span>
+                    <span class="n">list_task</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+                
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">saved</span><span class="p">,</span> <span class="s2">&quot;w+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_json</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">list_task</span><span class="p">,</span> <span class="n">f_json</span><span class="p">)</span>
+
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error. Unable to write on file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">saved</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error. File </span><span class="si">{}</span><span class="s2"> already exists&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">saved</span><span class="p">))</span></div>
+
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    STR</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Saves info about the pipeline/workflow.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tasks</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">pip</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="Workflow.summary_workflow"><a class="viewcode-back" href="../../src.html#src.objects.Workflow.summary_workflow">[docs]</a>    <span class="k">def</span> <span class="nf">summary_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Print info about the pipeline/workflow.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Workflow:&quot;</span><span class="p">)</span>
+                
+        <span class="k">for</span> <span class="n">pip</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tasks</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">pip</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Alba Casillas Rodríguez.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+<style>
+    .wy-nav-content-wrap {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+        display: block;
+    }
+
+    .wy-nav-content {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+    }
+
+    .rst-content {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search,
+    .wy-nav-top {
+        background: hsl(0, 2%, 10%);
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+        background: #85e4a5;
+    }
+
+    .caption {
+        background: hsl(0, 0%, 100%);
+    }
+
+    .caption-text {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a:hover {
+        color: hsl(0, 0%, 100%)
+    }
+</style>
+
+
+</body>
+</html>

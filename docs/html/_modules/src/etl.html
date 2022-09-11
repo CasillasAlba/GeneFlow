@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.etl &mdash; GeneFlow 0.8 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html"><img src="../../_static/geneflow_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">GeneFlow:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../geneflow.html">GeneFlow</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html">DataObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.etl">ETL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.model">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.objects">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.processing">Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.utils">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.visualize">Visualize</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeneFlow</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>src.etl</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.etl</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">@author: Alba Casillas Rodríguez (albacaro@correo.ugr.es)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">from</span> <span class="nn">src</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">ut</span>
+<span class="kn">from</span> <span class="nn">src</span> <span class="kn">import</span> <span class="n">processing</span> <span class="k">as</span> <span class="n">pro</span>
+<span class="kn">from</span> <span class="nn">src.objects</span> <span class="kn">import</span> <span class="n">FileProject</span>
+<span class="kn">from</span> <span class="nn">src.objects</span> <span class="kn">import</span> <span class="n">DataProject</span>
+
+
+
+<span class="c1"># ETL == Extract, transform and load </span>
+<div class="viewcode-block" id="ETL"><a class="viewcode-back" href="../../src.html#src.etl.ETL">[docs]</a><span class="k">class</span> <span class="nc">ETL</span><span class="p">():</span>
+    
+    <span class="n">endpt_base</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">endpt_status</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">endpt_projects</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">endpt_files</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">endpt_data</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">clinical_filename</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">clinical_options</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Constructor method</span>
+<span class="sd">      &quot;&quot;&quot;</span> 
+
+<div class="viewcode-block" id="ETL.get_endpt_base"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_endpt_base">[docs]</a>    <span class="nd">@staticmethod</span> 
+    <span class="k">def</span> <span class="nf">get_endpt_base</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span></div>
+<div class="viewcode-block" id="ETL.get_endpt_files"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_endpt_files">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_endpt_files</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_files</span>   </div>
+<div class="viewcode-block" id="ETL.get_endpt_status"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_endpt_status">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_endpt_status</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_status</span></div>
+<div class="viewcode-block" id="ETL.get_endpt_data"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_endpt_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_endpt_data</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_data</span>  </div>
+<div class="viewcode-block" id="ETL.get_endpt_projects"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_endpt_projects">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_endpt_projects</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_projects</span>       </div>
+<div class="viewcode-block" id="ETL.get_clinical_filename"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_clinical_filename">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_clinical_filename</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">clinical_filename</span>  </div>
+<div class="viewcode-block" id="ETL.get_clinical_options"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_clinical_options">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_clinical_options</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ETL</span><span class="o">.</span><span class="n">clinical_options</span>  </div>
+        
+<div class="viewcode-block" id="ETL.download_file"><a class="viewcode-back" href="../../src.html#src.etl.ETL.download_file">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">download_file</span><span class="p">(</span><span class="n">respFile</span><span class="p">,</span> <span class="n">path_file</span><span class="p">):</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output_file</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">respFile</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="mi">1024</span><span class="p">):</span>
+                
+                <span class="n">output_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">block</span><span class="p">)</span></div>
+    
+    <span class="c1"># Creates a thread that executes the download_file function with the given arguments</span>
+<div class="viewcode-block" id="ETL.thread_download_file"><a class="viewcode-back" href="../../src.html#src.etl.ETL.thread_download_file">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">thread_download_file</span><span class="p">(</span><span class="n">respFile</span><span class="p">,</span> <span class="n">path_file</span><span class="p">):</span>
+        <span class="n">ut</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">ETL</span><span class="o">.</span><span class="n">download_file</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">respFile</span><span class="p">,</span> <span class="n">path_file</span><span class="p">))</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+
+    <span class="c1"># These methods won&#39;t be implemented because ETL will be the parent class</span>
+    <span class="c1"># So the children class can implement their own methods.</span>
+<div class="viewcode-block" id="ETL.get_projects"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_projects">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_projects</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override get_projects&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.search_project"><a class="viewcode-back" href="../../src.html#src.etl.ETL.search_project">[docs]</a>    <span class="k">def</span> <span class="nf">search_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ident</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override search_project&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.check_parameter"><a class="viewcode-back" href="../../src.html#src.etl.ETL.check_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">check_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endpt</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">list_filter</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override check_parameter&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.check_data_type"><a class="viewcode-back" href="../../src.html#src.etl.ETL.check_data_type">[docs]</a>    <span class="k">def</span> <span class="nf">check_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">endpt</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">data_type</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override check_data_type&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.form_filter"><a class="viewcode-back" href="../../src.html#src.etl.ETL.form_filter">[docs]</a>    <span class="k">def</span> <span class="nf">form_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fils</span><span class="p">,</span> <span class="n">nameFilter</span><span class="p">,</span> <span class="n">valueFilter</span><span class="p">,</span> <span class="n">fullNameFilter</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override form_filter&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ETL.get_query"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_query">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_object</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override get_query&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.get_clinical_query"><a class="viewcode-back" href="../../src.html#src.etl.ETL.get_clinical_query">[docs]</a>    <span class="nd">@staticmethod</span>   
+    <span class="k">def</span> <span class="nf">get_clinical_query</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">legacy</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override get_clinical_query&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.download_data"><a class="viewcode-back" href="../../src.html#src.etl.ETL.download_data">[docs]</a>    <span class="nd">@staticmethod</span>    
+    <span class="k">def</span> <span class="nf">download_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_object</span><span class="p">,</span> <span class="n">os_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override download_data&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.download_clinical_data"><a class="viewcode-back" href="../../src.html#src.etl.ETL.download_clinical_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">download_clinical_data</span><span class="p">(</span><span class="n">project_name</span><span class="p">,</span> <span class="n">clinic_info</span><span class="p">,</span> <span class="n">legacy</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">os_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override download_clinic_data&quot;</span><span class="p">)</span></div>
+      
+<div class="viewcode-block" id="ETL.read_file_rna"><a class="viewcode-back" href="../../src.html#src.etl.ETL.read_file_rna">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read_file_rna</span><span class="p">(</span><span class="n">name_tsv</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override read_file_rna&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.read_rna"><a class="viewcode-back" href="../../src.html#src.etl.ETL.read_rna">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read_rna</span><span class="p">(</span><span class="n">dir_path</span><span class="p">,</span> <span class="n">save</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override read_rna&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ETL.read_clinical"><a class="viewcode-back" href="../../src.html#src.etl.ETL.read_clinical">[docs]</a>    <span class="nd">@staticmethod</span>  
+    <span class="k">def</span> <span class="nf">read_clinical</span><span class="p">(</span><span class="n">name_tsv</span><span class="p">,</span> <span class="n">sep</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Must override read_clinical&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ProcessGDC"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC">[docs]</a><span class="k">class</span> <span class="nc">ProcessGDC</span><span class="p">(</span><span class="n">ETL</span><span class="p">):</span>
+
+    <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span> <span class="o">=</span> <span class="s2">&quot;https://api.gdc.cancer.gov/&quot;</span>
+    <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_status</span> <span class="o">=</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span> <span class="o">+</span> <span class="s2">&quot;status&quot;</span>
+    <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_projects</span> <span class="o">=</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span> <span class="o">+</span> <span class="s2">&quot;projects&quot;</span>
+    <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_files</span> <span class="o">=</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span> <span class="o">+</span> <span class="s2">&quot;files&quot;</span>
+    <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_data</span> <span class="o">=</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span> <span class="o">+</span> <span class="s2">&quot;data&quot;</span>
+    <span class="n">ETL</span><span class="o">.</span><span class="n">clinical_filename</span> <span class="o">=</span> <span class="s2">&quot;nationwidechildrens.org_clinical_&quot;</span>
+    <span class="n">ETL</span><span class="o">.</span><span class="n">clinical_options</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;drug&quot;</span><span class="p">,</span> <span class="s2">&quot;patient&quot;</span><span class="p">,</span> <span class="s2">&quot;nte&quot;</span><span class="p">,</span> <span class="s2">&quot;radiation&quot;</span><span class="p">,</span> <span class="s2">&quot;follow_up&quot;</span><span class="p">,</span> <span class="s2">&quot;omf&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Unique parameters of the child</span>
+    <span class="c1"># Not all data sources will have a legacy parameter.</span>
+    <span class="n">endpt_legacy</span> <span class="o">=</span> <span class="n">ETL</span><span class="o">.</span><span class="n">endpt_base</span> <span class="o">+</span> <span class="s2">&quot;legacy/files&quot;</span>
+    <span class="n">data_legacy</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor method</span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+    
+<div class="viewcode-block" id="ProcessGDC.get_endpt_base"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.get_endpt_base">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_endpt_base</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the URL to search in the TCGA base</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The URL to search in the GDC base.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">endpt_base</span></div>
+
+<div class="viewcode-block" id="ProcessGDC.get_endpt_legacy"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.get_endpt_legacy">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_endpt_legacy</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Returns a string with the URL to search in the TCGA Legacy Archive</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The URL to search in the GDC Legacy Archive.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">endpt_legacy</span></div>
+    
+<div class="viewcode-block" id="ProcessGDC.get_data_legacy"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.get_data_legacy">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_data_legacy</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Returns a boolean that indicates if the data is from the GDC</span>
+<span class="sd">            Legacy Archive or from the GDC Data Portal.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: &#39;True&#39; to search for data in the GDC Legacy Archive,</span>
+<span class="sd">            and &#39;False&#39; otherwise.</span>
+<span class="sd">        :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">data_legacy</span></div>
+
+
+<div class="viewcode-block" id="ProcessGDC.set_data_legacy"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.set_data_legacy">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">set_data_legacy</span><span class="p">(</span><span class="n">legacy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set if data comes from the GDC Legacy Archive or not.</span>
+<span class="sd">        </span>
+<span class="sd">        :param legacy: &#39;True&#39; to search for data in the GDC Legacy Archive,</span>
+<span class="sd">            and &#39;False&#39; otherwise.</span>
+<span class="sd">        :type legacy: bool </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">data_legacy</span> <span class="o">=</span> <span class="n">legacy</span></div>
+    
+    
+<div class="viewcode-block" id="ProcessGDC.get_projects"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.get_projects">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_projects</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Gets all available GDC projects</span>
+<span class="sd">            </span>
+<span class="sd">            :return: List of available projects in the GDC Data Portal.</span>
+<span class="sd">            :rtype: list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;size&quot;</span> <span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+            <span class="s2">&quot;format&quot;</span> <span class="p">:</span> <span class="s2">&quot;json&quot;</span>
+        <span class="p">}</span>
+          
+        <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">get_json_query</span><span class="p">(</span><span class="n">ETL</span><span class="o">.</span><span class="n">get_endpt_projects</span><span class="p">(),</span> <span class="n">params</span><span class="p">)</span>
+        
+        <span class="n">projects</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;hits&quot;</span><span class="p">]</span>
+          
+        <span class="n">project_identifiers</span> <span class="o">=</span> <span class="p">{}</span>
+          
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span><span class="p">:</span>
+            <span class="n">project_identifiers</span><span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;project_id&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+      
+        <span class="k">return</span> <span class="n">project_identifiers</span></div>
+    
+    
+<div class="viewcode-block" id="ProcessGDC.search_project"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.search_project">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">search_project</span><span class="p">(</span><span class="n">ident</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Search the project by the input &quot;ident&quot; variable. It could be the identifier</span>
+<span class="sd">            or the complete name of the cancer. If exists, the ID will be returned.</span>
+<span class="sd">            </span>
+<span class="sd">            :param ident: Identificator (ID/Name) to search the project.</span>
+<span class="sd">            :type ident: str</span>
+<span class="sd">            :return: The identifier of the project. E.g: TCGA-BRCA.</span>
+<span class="sd">            :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">projects</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_projects</span><span class="p">()</span> <span class="c1"># Return complete name of the cancer        </span>
+
+        <span class="c1"># None if doesn&#39;t exists </span>
+        <span class="c1"># search for key and return value</span>
+        <span class="n">id_</span> <span class="o">=</span> <span class="n">projects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ident</span><span class="p">)</span> <span class="c1"># Adrenocortical Carcinoma , Osteosarcoma, Skin Cutaneous Melanoma...</span>
+    
+       
+        <span class="k">if</span> <span class="p">(</span><span class="n">id_</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+                
+            <span class="n">val_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">projects</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+                       
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="n">val_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">ident</span><span class="p">)</span>                
+                    
+                <span class="n">id_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">projects</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">pos</span><span class="p">]</span> <span class="c1"># Convert complete name to acronym     </span>
+    
+            <span class="k">except</span><span class="p">:</span>
+                
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">id_</span> <span class="o">=</span> <span class="n">ident</span>
+            
+    
+        <span class="k">return</span> <span class="n">id_</span></div>
+    
+    
+<div class="viewcode-block" id="ProcessGDC.check_parameter"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.check_parameter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_parameter</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">filters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check if the parameter selected is available with the actual query.</span>
+<span class="sd">            </span>
+<span class="sd">            :param endpt: URL where the request is going to be done.</span>
+<span class="sd">            :type endpt: str</span>
+<span class="sd">            :param param: Name of the parameter to check.</span>
+<span class="sd">            :type param: str</span>
+<span class="sd">            :param value: Value of the parameter to check.</span>
+<span class="sd">            :type value: str</span>
+<span class="sd">            :param filters: current list of filters.</span>
+<span class="sd">            :type filters: list</span>
+
+<span class="sd">            :return: The value of parameter with the correct format to add </span>
+<span class="sd">                it to the query.</span>
+<span class="sd">            :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Search parameters</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;facets&#39;</span><span class="p">:</span> <span class="n">param</span><span class="p">,</span>
+            <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">filters</span><span class="p">),</span>
+            <span class="s1">&#39;from&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;pretty&quot;</span> <span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+        <span class="p">}</span>
+             
+        <span class="n">response</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="p">)</span>     
+                
+        <span class="n">mapa</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+        
+        <span class="c1"># Transform to json format (dict)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+                
+        <span class="n">datos</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;aggregations&quot;</span><span class="p">][</span><span class="n">param</span><span class="p">][</span><span class="s2">&quot;buckets&quot;</span><span class="p">]</span>
+        
+        <span class="n">param_original</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">param_results</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># get all available parameters with the actual filters</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">datos</span><span class="p">:</span>
+            <span class="n">param_original</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">])</span>
+            <span class="n">param_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+      
+            
+        <span class="c1"># If we only have a single value, we search it in the list</span>
+        <span class="c1"># If we have several values, we have to check if each element is in param_results list</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">find_parameter</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">param_results</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+    
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">va</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                <span class="n">pos</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">find_parameter</span><span class="p">(</span><span class="n">va</span><span class="p">,</span> <span class="n">param_results</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">param_original</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span></div>
+    
+
+<div class="viewcode-block" id="ProcessGDC.check_data_type"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.check_data_type">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_data_type</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">data_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check the data type selected. We need to have a single data type to </span>
+<span class="sd">            proceed with the download. So, data type cannot be a list.</span>
+<span class="sd">            If None, we have to check if all the filters selected return </span>
+<span class="sd">            only one data type to download.</span>
+<span class="sd">            </span>
+<span class="sd">            :param endpt: URL where the request is going to be done.</span>
+<span class="sd">            :type endpt: str</span>
+<span class="sd">            :param filters: current list of filters.</span>
+<span class="sd">            :type filters: list</span>
+<span class="sd">            :param data_type: Data Type to check.</span>
+<span class="sd">            :type data_type: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">data_type</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">data_type</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;We can only download one data type. Please use &#39;Data Type&#39; argument to filter results.&quot;</span><span class="p">)</span>
+                
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;facets&#39;</span><span class="p">:</span> <span class="s2">&quot;data_type&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">filters</span><span class="p">),</span>
+                <span class="s1">&#39;from&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;pretty&quot;</span> <span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+            <span class="p">}</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="p">)</span>
+            
+            <span class="n">mapa</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+                
+            <span class="c1"># Transform data to JSON format</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">mapa</span><span class="p">)</span>
+            
+            <span class="n">datos</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;aggregations&quot;</span><span class="p">][</span><span class="s2">&quot;data_type&quot;</span><span class="p">][</span><span class="s2">&quot;buckets&quot;</span><span class="p">]</span>
+            
+            <span class="n">param_results</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">datos</span><span class="p">:</span>
+                <span class="n">param_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+            
+            <span class="c1"># len(param_results) &gt; 1 means there are more than one data type with the filters selected, so the program</span>
+            <span class="c1"># finishes cause we only download data with a single data type.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_results</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;We can only download one data type. Please use &#39;Data Type&#39; argument to filter results.&quot;</span><span class="p">)</span>
+                
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProcessGDC.form_filter"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.form_filter">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="n">nameFilter</span><span class="p">,</span> <span class="n">valueFilter</span><span class="p">,</span> <span class="n">fullNameFilter</span><span class="p">,</span> <span class="n">endpt_</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates the filter to do the query that gets the data.</span>
+<span class="sd">            If the new value for the query is available, it will be added to</span>
+<span class="sd">            the filter&#39;s list.</span>
+<span class="sd">            </span>
+<span class="sd">            :param filters: Current list with the filters.</span>
+<span class="sd">            :type filters: list</span>
+<span class="sd">            :param nameFilter: Name of the filter to be checked and added.</span>
+<span class="sd">            :type nameFilter: str</span>
+<span class="sd">            :param valueFilter: Value of the filter to be checked and added.</span>
+<span class="sd">            :type valueFilter: str</span>
+<span class="sd">            :param fullNameFilter: Name of the filter to be added plus the path </span>
+<span class="sd">                where it is searched in the API.</span>
+<span class="sd">            :type fullNameFilter: str </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># When an object of type list is passed to a numpy array,</span>
+        <span class="c1"># it is passed by reference automatically, so its value is pounded.</span>
+        
+        <span class="c1"># Check if the parameter exist. If not, the program will stop the execution</span>
+        <span class="n">param_original</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">check_parameter</span><span class="p">(</span><span class="n">endpt_</span><span class="p">,</span> <span class="n">nameFilter</span><span class="p">,</span> <span class="n">valueFilter</span><span class="p">,</span> <span class="n">filters</span><span class="p">)</span>
+            
+        <span class="n">opin</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">create_opin</span><span class="p">((</span><span class="n">fullNameFilter</span><span class="p">,</span> <span class="n">param_original</span><span class="p">))</span>
+        
+        <span class="n">filters</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">opin</span><span class="p">)</span></div>
+        
+        
+        
+<div class="viewcode-block" id="ProcessGDC.regex_file_name"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.regex_file_name">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">regex_file_name</span><span class="p">(</span><span class="n">proj_id</span><span class="p">,</span> <span class="n">clinical_option</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Finds the clinical option even if it is a new version of the file.</span>
+<span class="sd">            The version of the file is controlled by a regex expression. </span>
+<span class="sd">            E.g:  _omf_v1.0 or _omf_v12.9 can be part of the file name</span>
+<span class="sd">            </span>
+<span class="sd">            :param proj_id: ID of the project. E.g: if the project is &quot;TCGA-SKCM&quot;, the id</span>
+<span class="sd">                will be &quot;skcm&quot;.</span>
+<span class="sd">            :type proj_id: str</span>
+<span class="sd">            :param clinical_option: Clinical option to search in the regex expression.</span>
+<span class="sd">            :type clinical_option: str</span>
+<span class="sd">            :param file_name: File to check if it has the clinical option in its name, even</span>
+<span class="sd">                if it has a version pattern.</span>
+<span class="sd">            :type file_name: str</span>
+<span class="sd">            :return: &#39;True&#39; if the clinical option has been found and &#39;False&#39; otherwise.</span>
+<span class="sd">            :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">middle_nm</span> <span class="o">=</span> <span class="n">ETL</span><span class="o">.</span><span class="n">get_clinical_filename</span><span class="p">()</span> <span class="o">+</span> <span class="n">clinical_option</span>
+        
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">middle_nm</span> <span class="o">+</span> <span class="s2">&quot;(_v[0-9]{1,3}.[0-9]</span><span class="si">{1}</span><span class="s2">)?&quot;</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">proj_id</span> <span class="o">+</span> <span class="s2">&quot;.(txt|csv|tsv)$&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">file_name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        
+        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+    
+
+<div class="viewcode-block" id="ProcessGDC.find_clinical"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.find_clinical">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">find_clinical</span><span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">clinical_option</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Finds if the selected clinical option is one of the available list </span>
+<span class="sd">            of files.</span>
+<span class="sd">            First, we only kept with those files from the list of files that match</span>
+<span class="sd">            a pattern where it is searched tyhe word &quot;clinical&quot; in the name of the file.</span>
+<span class="sd">            Then, in a new list with only the clinical files, search for a file that have</span>
+<span class="sd">            the specified clinical option.</span>
+<span class="sd">         </span>
+<span class="sd">            :param file_list: List of files to search the clinical option&#39;s file.</span>
+<span class="sd">            :type file_list: list</span>
+<span class="sd">            :return: &#39;True&#39; if the clinical option has been found and &#39;False&#39; otherwise.</span>
+<span class="sd">            :rtype: bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Any ASCII Character (0 to 127)</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;^[</span><span class="se">\x00</span><span class="s2">-</span><span class="se">\x7F</span><span class="s2">]*&quot;</span> <span class="o">+</span> <span class="s2">&quot;_clinical_[</span><span class="se">\x00</span><span class="s2">-</span><span class="se">\x7F</span><span class="s2">]*(.txt|.csv|.tsv)$&quot;</span>
+        
+        <span class="n">list_clinical</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">ut</span><span class="o">.</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">lower</span><span class="p">()):</span>
+                <span class="n">list_clinical</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>    
+        
+        <span class="c1"># If between all list_clinical elements, one of them have the clinical_option</span>
+        <span class="c1"># in the name, the file will be downloaded</span>
+        <span class="k">for</span> <span class="n">cln</span> <span class="ow">in</span> <span class="n">list_clinical</span><span class="p">:</span>
+            <span class="c1"># search substring on list</span>
+            <span class="k">if</span> <span class="n">ut</span><span class="o">.</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">clinical_option</span><span class="p">,</span> <span class="n">cln</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="k">return</span> <span class="kc">False</span></div>
+    
+    
+<div class="viewcode-block" id="ProcessGDC.write_to_dataframe"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.write_to_dataframe">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">write_to_dataframe</span><span class="p">(</span><span class="n">list_</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">entity_id</span><span class="p">,</span> <span class="n">legacy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Creates a list of the DataFrame&#39;s lines, so it allows multithreading</span>
+<span class="sd">            while reading the file.</span>
+<span class="sd">            </span>
+<span class="sd">            :param list_: List to append DataFrame&#39;s content. It is modified by reference.</span>
+<span class="sd">            :type list_: list</span>
+<span class="sd">            :param file: file to be read.</span>
+<span class="sd">            :type file: str</span>
+<span class="sd">            :param col: Name of the column to be read. If legacy is &#39;True&#39;, </span>
+<span class="sd">                it is set to the second column of the DataFrame; if legacy is</span>
+<span class="sd">                &#39;False&#39;, column is set to &#39;unstranded&#39;.</span>
+<span class="sd">            :type col: str</span>
+<span class="sd">            :param legacy:&#39;True&#39; to search for data in the GDC Legacy Archive,</span>
+<span class="sd">                and &#39;False&#39; otherwise; defaults to &#39;False&#39;.</span>
+<span class="sd">            :type legacy: bool </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">legacy</span><span class="p">):</span>
+            <span class="n">file_content</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">read_file_rna_legacy</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+            <span class="n">file_content</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">file_content</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="n">entity_id</span><span class="p">})</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_content</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">read_file_rna</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+            <span class="n">file_content</span> <span class="o">=</span> <span class="n">file_content</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span> <span class="p">:</span> <span class="n">entity_id</span><span class="p">})</span>
+    
+        <span class="n">list_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_content</span><span class="p">)</span></div>
+
+
+
+<span class="c1">###########################################################################</span>
+<span class="c1">#       </span>
+<span class="c1">#                          GET QUERY FUNCTIONS</span>
+<span class="c1"># </span>
+<span class="c1">###########################################################################</span>
+
+
+<div class="viewcode-block" id="ProcessGDC.get_query"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.get_query">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_query</span><span class="p">(</span><span class="n">query_object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; It creates the correct query using the data specified in the input DataObject</span>
+<span class="sd">            and gets the data that it is going to be downloaded.</span>
+<span class="sd">            To do it, it is checked each parameter availability taking into account the filter</span>
+<span class="sd">            selected.</span>
+<span class="sd">            If the parameter is available, it is added to the filter&#39;s list before checking</span>
+<span class="sd">            the next parameter. </span>
+<span class="sd">            Once all filters are set, we get the request.</span>
+<span class="sd">         </span>
+<span class="sd">            :param query_object: GDCQuery that specified all the fields to get the data desired.</span>
+<span class="sd">            :type query_object: GDCQuery</span>
+<span class="sd">            :return: The response of the request, in case all parameters are available.</span>
+<span class="sd">            :rtype: requests.models.Response</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="c1"># list of the fileds that will be returned by the query. We avoid the rest of the information</span>
+        <span class="n">lfields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;file_id&quot;</span><span class="p">,</span> <span class="s2">&quot;data_format&quot;</span><span class="p">,</span> <span class="s2">&quot;file_name&quot;</span><span class="p">,</span> <span class="s2">&quot;submitter_id&quot;</span><span class="p">,</span> <span class="s2">&quot;data_category&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;access&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;file_size&quot;</span><span class="p">,</span> <span class="s2">&quot;created_datetime&quot;</span><span class="p">,</span> <span class="s2">&quot;md5sum&quot;</span><span class="p">,</span> <span class="s2">&quot;updated_datetime&quot;</span><span class="p">,</span> <span class="s2">&quot;data_type&quot;</span><span class="p">,</span> <span class="s2">&quot;state&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;experimental_strategy&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;data_release&quot;</span><span class="p">,</span> <span class="s2">&quot;associated_entities.entity_submitter_id&quot;</span><span class="p">]</span>
+        
+        <span class="n">lfields</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lfields</span><span class="p">)</span>
+      
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;op&quot;</span> <span class="p">:</span> <span class="s2">&quot;and&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span> <span class="p">:</span> <span class="p">[]}</span>
+    
+    
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_legacy</span><span class="p">()</span> <span class="o">==</span> <span class="kc">True</span><span class="p">):</span>
+            
+            <span class="n">endpt</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_endpt_legacy</span><span class="p">()</span>
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">set_data_legacy</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">endpt</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_endpt_files</span><span class="p">()</span>
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">set_data_legacy</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+
+        <span class="c1"># Add project to filter. </span>
+        <span class="c1"># It is not needed to check this param because at this point it is sure that the project id is correct</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Project &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">()))</span>
+        
+        <span class="n">opin</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">create_opin</span><span class="p">((</span><span class="s2">&quot;cases.project.project_id&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">()))</span>
+        
+        <span class="n">filters</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">opin</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Checking if the parameters are correct...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+        <span class="c1"># We check each of the params introduced by the user and add them into the filter if they are correct</span>
+        <span class="c1"># Taking into account we will analyse RNA-Seq data,this parameter will be mandatory for the user</span>
+        <span class="c1">#  and it will be the first one to be checked</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_experimental_strategy</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;experimental_strategy&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_experimental_strategy</span><span class="p">(),</span> <span class="s2">&quot;files.experimental_strategy&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+            
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_data_category</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;data_category&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_data_category</span><span class="p">(),</span> <span class="s2">&quot;files.data_category&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+                  
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_data_type</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;data_type&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_data_type</span><span class="p">(),</span> <span class="s2">&quot;files.data_type&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+                            
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_workflow_type</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_legacy</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">True</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;analysis.workflow_type&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_workflow_type</span><span class="p">(),</span> <span class="s2">&quot;files.analysis.workflow_type&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>                    
+            
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_access</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;access&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_access</span><span class="p">(),</span> <span class="s2">&quot;files.access&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+            
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_platform</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;platform&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_platform</span><span class="p">(),</span> <span class="s2">&quot;files.platform&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+            
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_data_format</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;data_format&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_data_format</span><span class="p">(),</span> <span class="s2">&quot;files.data_format&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+                                          
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_sample_type</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;cases.samples.sample_type&quot;</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_sample_type</span><span class="p">(),</span> <span class="s2">&quot;files.cases.samples.sample_type&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+
+        <span class="c1"># Finally, we check if our filters only return a sigle type of data. </span>
+        <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">check_data_type</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_data_type</span><span class="p">())</span> 
+
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">filters</span><span class="p">),</span> 
+            <span class="s2">&quot;facets&quot;</span><span class="p">:</span> <span class="s2">&quot;file_size&quot;</span><span class="p">,</span> <span class="c1"># to get file size of the query</span>
+            <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="n">lfields</span><span class="p">,</span>
+            <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="s2">&quot;900000&quot;</span><span class="p">,</span> <span class="c1"># Used 900000 to download all the data available for the query</span>
+            <span class="s2">&quot;pretty&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+        <span class="p">}</span>
+
+
+        <span class="c1"># We try twice to do the query just to controll a posible timeout problem.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>  
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>  <span class="n">timeout</span> <span class="o">=</span> <span class="mi">600</span><span class="p">)</span>
+                            
+                <span class="k">return</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            
+            <span class="k">except</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;We will retry to access GDC!&quot;</span><span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Timeout error trying the query.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Get clinical info for &quot;proj&quot; project and &quot;clinic&quot; clinical value               </span>
+<div class="viewcode-block" id="ProcessGDC.get_clinical_query"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.get_clinical_query">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_clinical_query</span><span class="p">(</span><span class="n">project_name</span><span class="p">,</span> <span class="n">legacy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Query in the TCGA API to get the clinical info linked to a </span>
+<span class="sd">            specific project.</span>
+<span class="sd">            </span>
+<span class="sd">            :param project_name: Name of the project.</span>
+<span class="sd">            :type project_name: str</span>
+<span class="sd">            :param legacy: &#39;True&#39; to search for data in the GDC Legacy Archive,</span>
+<span class="sd">                and &#39;False&#39; otherwise; defaults to &#39;False&#39;.</span>
+<span class="sd">            :type legacy: bool </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;op&quot;</span> <span class="p">:</span> <span class="s2">&quot;and&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span> <span class="p">:</span> <span class="p">[]}</span>
+    
+        <span class="k">if</span><span class="p">(</span><span class="n">legacy</span><span class="p">):</span>
+            <span class="n">endpt</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_endpt_legacy</span><span class="p">()</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">endpt</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_endpt_files</span><span class="p">()</span>
+            
+                
+        <span class="c1"># Add project to filter </span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Project &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">project_name</span><span class="p">))</span>
+        
+        <span class="n">opin</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">create_opin</span><span class="p">((</span><span class="s2">&quot;cases.project.project_id&quot;</span><span class="p">,</span> <span class="n">project_name</span><span class="p">))</span>
+        
+        <span class="n">filters</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">opin</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Checking clinical information...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">form_filter</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="s2">&quot;data_category&quot;</span><span class="p">,</span> <span class="s2">&quot;Clinical&quot;</span><span class="p">,</span> <span class="s2">&quot;files.data_category&quot;</span><span class="p">,</span> <span class="n">endpt</span><span class="p">)</span>
+                                          
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;filters&quot;</span><span class="p">:</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">filters</span><span class="p">),</span>
+            <span class="s2">&quot;fields&quot;</span> <span class="p">:</span> <span class="s2">&quot;file_name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="s2">&quot;90000&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pretty&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># We try twice to do the query just to controll a posible timeout problem.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>  
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpt</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>  <span class="n">timeout</span> <span class="o">=</span> <span class="mi">600</span><span class="p">)</span>
+                
+                <span class="k">return</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            
+            <span class="k">except</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;We will retry to access GDC!&quot;</span><span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Timeout error trying the query.&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1">###############################################################################</span>
+        
+<span class="c1">#                           DOWNLOAD DATA FUNCTIONS</span>
+
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="ProcessGDC.download_data"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.download_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">download_data</span><span class="p">(</span><span class="n">query_object</span><span class="p">,</span> <span class="n">os_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Download the data with the characteristics specidied in the DataObject object.</span>
+<span class="sd">            Before downloading the data, it is checked if all fields have a correct value and</span>
+<span class="sd">            existing information.</span>
+<span class="sd">            A folder with the ID of the cancer will be created to save the data. It will also be</span>
+<span class="sd">            saved a manifest.txt file with the list of the ID of the files and their Entity ID.</span>
+<span class="sd">            The Entity ID is useful to match samples with clinical information downloaded from the </span>
+<span class="sd">            portal.</span>
+<span class="sd">            All the data is downloaded using the TCGA API via requests.</span>
+<span class="sd">         </span>
+<span class="sd">            :param query_object: GDCQuery object with the features of the data that will be downloaded.</span>
+<span class="sd">            :type query_object: GDCQuery</span>
+<span class="sd">            :param os_path: Directory path were the file will be saved.Defaults to None, so</span>
+<span class="sd">                it will be saved in the current directory.</span>
+<span class="sd">            :type os_path: str, optional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+                
+        <span class="c1"># Check if the path exists</span>
+        <span class="k">if</span> <span class="n">os_path</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">os_path</span><span class="p">)):</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The destination path does not exist&quot;</span><span class="p">)</span> 
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1"># Check the status of the server</span>
+        <span class="n">ut</span><span class="o">.</span><span class="n">check_server_status</span><span class="p">(</span><span class="n">ETL</span><span class="o">.</span><span class="n">get_endpt_status</span><span class="p">())</span>
+        
+        <span class="c1"># Search the project in GDC database.</span>
+        <span class="c1"># If -1 is returned, the project is not found --- show list of available projects</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Searching in GDC database&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Search the project in the db and update the attribute</span>
+        <span class="n">query_object</span><span class="o">.</span><span class="n">set_project</span><span class="p">(</span><span class="n">ProcessGDC</span><span class="o">.</span><span class="n">search_project</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">()))</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">()</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            
+            <span class="c1"># Create the folder to save the data if it doesn&#39;t exist.</span>
+            <span class="c1"># If the folder exists, it might be because the data is already downloaded.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os_path</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                    
+                    <span class="n">destino</span> <span class="o">=</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">()</span>
+                    
+                    <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">destino</span><span class="p">)</span> 
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="n">destino</span> <span class="o">=</span> <span class="n">os_path</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">()</span>
+                    
+                    <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">destino</span><span class="p">)</span>
+                
+            <span class="k">except</span><span class="p">:</span>
+                                
+                <span class="n">content</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">destino</span><span class="p">))</span>
+
+                <span class="c1"># If the condition is True, files of the project have been downloaded</span>
+                <span class="c1"># and it might also be downloaded clinical files</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> 
+                    
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Project: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; already exists in the current directory.&quot;</span><span class="p">)</span>    
+                    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># The function finishes but not the whole program            </span>
+                
+            <span class="c1"># Get the query with filters elected</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Accessing GDC. This might take a while...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="n">response</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_query</span><span class="p">(</span><span class="n">query_object</span><span class="p">)</span>
+            
+            <span class="n">content</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+    
+            <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="c1"># Transform to json format (dict)</span>
+    
+            <span class="c1"># We get the data and the total size of the query, which is the sum of the size of each result in bytes</span>
+            <span class="n">datos</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;hits&quot;</span><span class="p">]</span> <span class="c1"># Access to third level</span>
+            
+            <span class="c1"># We add the information of each file to the FilesTCGA class.</span>
+            <span class="c1"># If the try fails, in the case that one of the parameters doesn&#39;t ecists, we add only the essential fields of the files</span>
+            <span class="n">datas_downloaded</span> <span class="o">=</span> <span class="n">DataProject</span><span class="p">()</span>
+            
+            <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">set_project_name</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">())</span>
+            
+            <span class="c1"># Create a manifest file</span>
+            <span class="c1"># The manifest file will save the file name and its corresponding Entity ID</span>
+            <span class="c1"># This will be useful to read the downloaded data correctly</span>
+            <span class="n">manifest</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">destino</span> <span class="o">+</span> <span class="s2">&quot;/manifest.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="n">manifest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;File_Name</span><span class="se">\t</span><span class="s2">Entity_ID</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                  
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">datos</span><span class="p">:</span> 
+                
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_normalized</span><span class="p">():</span>
+                        
+                        <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_file_type</span><span class="p">())</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+
+                            <span class="n">fproj</span> <span class="o">=</span> <span class="n">FileProject</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_format&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;access&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;submitter_id&quot;</span><span class="p">],</span>
+                                                <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_category&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;created_datetime&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;md5sum&quot;</span><span class="p">],</span>
+                                                <span class="n">d</span><span class="p">[</span><span class="s2">&quot;updated_datetime&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_type&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;experimental_strategy&quot;</span><span class="p">],</span> 
+                                                <span class="n">d</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_release&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;associated_entities&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;entity_submitter_id&quot;</span><span class="p">])</span>
+                            
+                            <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">fproj</span><span class="p">)</span>
+                            
+                            <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">plus_size_download</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span> <span class="c1">#  # Get the file size</span>
+                            
+                            <span class="n">manifest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fproj</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">fproj</span><span class="o">.</span><span class="n">get_entity_id</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    
+                    <span class="k">else</span><span class="p">:</span>
+
+                        <span class="n">fproj</span> <span class="o">=</span> <span class="n">FileProject</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_format&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;access&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;submitter_id&quot;</span><span class="p">],</span>
+                                            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_category&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;created_datetime&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;md5sum&quot;</span><span class="p">],</span>
+                                            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;updated_datetime&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_type&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;experimental_strategy&quot;</span><span class="p">],</span> 
+                                            <span class="n">d</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_release&quot;</span><span class="p">],</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;associated_entities&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;entity_submitter_id&quot;</span><span class="p">])</span>
+
+                        <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">fproj</span><span class="p">)</span>
+
+                        <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">plus_size_download</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>  <span class="c1"># Get the file size</span>
+                        
+                        <span class="n">manifest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fproj</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">fproj</span><span class="o">.</span><span class="n">get_entity_id</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">except</span><span class="p">:</span>
+                    
+                    <span class="k">if</span> <span class="n">query_object</span><span class="o">.</span><span class="n">get_normalized</span><span class="p">():</span>
+
+                        <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_file_type</span><span class="p">())</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+
+                            <span class="n">fproj</span> <span class="o">=</span> <span class="n">FileProject</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">data_format</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_format&quot;</span><span class="p">],</span> <span class="n">file_name</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">],</span> 
+                                                <span class="n">submitter_id</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;submitter_id&quot;</span><span class="p">],</span> <span class="n">data_category</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_category&quot;</span><span class="p">],</span> 
+                                                <span class="n">file_size</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">],</span> <span class="n">data_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_type&quot;</span><span class="p">],</span>
+                                                <span class="n">entity_id</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;associated_entities&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;entity_submitter_id&quot;</span><span class="p">])</span>
+                                             
+                            
+                            <span class="n">manifest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fproj</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">fproj</span><span class="o">.</span><span class="n">get_entity_id</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                            <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">fproj</span><span class="p">)</span>
+
+                            <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">plus_size_download</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>  <span class="c1"># Get the file size</span>
+
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">fproj</span> <span class="o">=</span> <span class="n">FileProject</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">data_format</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_format&quot;</span><span class="p">],</span> <span class="n">file_name</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">],</span> 
+                                            <span class="n">submitter_id</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;submitter_id&quot;</span><span class="p">],</span> <span class="n">data_category</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_category&quot;</span><span class="p">],</span> 
+                                            <span class="n">file_size</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">],</span> <span class="n">data_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;data_type&quot;</span><span class="p">],</span>
+                                            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s2">&quot;associated_entities&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;entity_submitter_id&quot;</span><span class="p">])</span>
+                                         
+                        <span class="n">manifest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fproj</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">fproj</span><span class="o">.</span><span class="n">get_entity_id</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                        <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">fproj</span><span class="p">)</span>
+
+                        <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">plus_size_download</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;file_size&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>  <span class="c1"># Get the file size</span>
+                        
+            <span class="n">manifest</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                
+            <span class="c1"># Create a post reuest to donwload multiple files</span>
+            <span class="c1"># https://docs.gdc.cancer.gov/API/Users_Guide/Python_Examples/#post-request-to-download-multiple-files</span>
+            <span class="c1"># With the id of the file, we do a post request to download its information.</span>
+            <span class="c1"># For each file, a folder with its file name is created in order to save the related info.</span>
+            
+            <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">set_dir_path</span><span class="p">(</span><span class="n">destino</span><span class="p">)</span>
+            <span class="n">destino</span> <span class="o">=</span> <span class="n">destino</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>           
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">size_mb</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">total_files</span> <span class="o">=</span> <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">get_total_files</span><span class="p">()</span>
+            <span class="n">total_size</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">datas_downloaded</span><span class="o">.</span><span class="n">get_size_download</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading data for project &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">print_progress_bar</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">total_files</span><span class="p">,</span> <span class="n">size_mb</span> <span class="p">,</span> <span class="n">total_size</span><span class="p">)</span>
+            
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">get_files</span><span class="p">():</span>
+                
+                <span class="n">path</span> <span class="o">=</span> <span class="n">destino</span> <span class="o">+</span> <span class="n">f</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span>
+
+                <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+                <span class="n">path_fl</span> <span class="o">=</span> <span class="n">datas_downloaded</span><span class="o">.</span><span class="n">formatted_path</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                
+                <span class="n">size_mb</span> <span class="o">=</span> <span class="n">size_mb</span> <span class="o">+</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">get_file_size</span><span class="p">()</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span> <span class="c1"># to show the size of the data donwloaded.</span>
+
+                <span class="n">size_mb_rd</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">size_mb</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+                <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="c1"># Update progress bar</span>
+    
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">ETL</span><span class="o">.</span><span class="n">get_endpt_data</span><span class="p">(),</span> <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;ids&quot;</span> <span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">get_id</span><span class="p">()}),</span> <span class="n">headers</span><span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span> <span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">},</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                
+                <span class="n">ETL</span><span class="o">.</span><span class="n">thread_download_file</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">path_fl</span><span class="p">)</span> <span class="c1"># Download the data with multithreadin to increase the speed</span>
+
+                <span class="n">ut</span><span class="o">.</span><span class="n">print_progress_bar</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">total_files</span><span class="p">,</span> <span class="n">size_mb_rd</span> <span class="p">,</span> <span class="n">total_size</span><span class="p">)</span>
+                
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">project_identifiers</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_projects</span><span class="p">()</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Project: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">query_object</span><span class="o">.</span><span class="n">get_project</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot; was not found. Availables projects are:</span><span class="se">\n</span><span class="s2"> &quot;</span><span class="p">)</span>    
+    
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">project_identifiers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    
+                <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;15}</span><span class="s2"> </span><span class="si">{:&lt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+                
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please set a valid project argument.&quot;</span><span class="p">)</span>
+            <span class="c1">#print(ut.fg(&#39;light_red&#39;) + &quot;Please set a valid project argument.&quot;)</span>
+                
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ProcessGDC.download_clinical_data"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.download_clinical_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">download_clinical_data</span><span class="p">(</span><span class="n">project_name</span><span class="p">,</span> <span class="n">clinic_info</span><span class="p">,</span> <span class="n">legacy</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">os_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Download clinical data from a specified project. A folder with the name of the</span>
+<span class="sd">            project will be created if it does not already exist. If it exists, it will be</span>
+<span class="sd">            checked if the clinical information has been previously downloaded.</span>
+<span class="sd">         </span>
+<span class="sd">            :param project_name: Name of the project.</span>
+<span class="sd">            :type project_name: str</span>
+<span class="sd">            :param clinic_info: Type of clinical information that will be downloaded. </span>
+<span class="sd">                It will be downloaded the latest version found. E.g: &quot;patient&quot; or &quot;drug&quot;.</span>
+<span class="sd">            :type clinic_info: str</span>
+<span class="sd">            :param legacy: True to search for data in the GDC Legacy Archive,</span>
+<span class="sd">                and &#39;False&#39; otherwise; defaults to &#39;False&#39;.</span>
+<span class="sd">            :type legacy: bool</span>
+<span class="sd">            :param os_path: Directory path were the file will be saved. Defaults to None, so</span>
+<span class="sd">                it will be saved in the current directory.</span>
+<span class="sd">            :type os_path: str, optional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Check if the path exists</span>
+        <span class="k">if</span> <span class="n">os_path</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">os_path</span><span class="p">)):</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The destination path does not exist&quot;</span><span class="p">)</span> 
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Check the status of the server</span>
+        <span class="n">ut</span><span class="o">.</span><span class="n">check_server_status</span><span class="p">(</span><span class="n">ETL</span><span class="o">.</span><span class="n">get_endpt_status</span><span class="p">())</span>   
+        
+        <span class="c1"># Search the project in GDC database.</span>
+        <span class="c1"># If .1 is returned, the project is not found --- show list of available projects</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Searching in GDC database&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Search the project in the db and update the attribute</span>
+        <span class="n">project_id</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">search_project</span><span class="p">(</span><span class="n">project_name</span><span class="p">)</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">project_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># dpr.check_element_on_list(clinic_info, ETL.get_clinical_options())</span>
+            <span class="n">pro</span><span class="o">.</span><span class="n">CheckElement</span><span class="p">(</span><span class="n">clinic_info</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ETL</span><span class="o">.</span><span class="n">get_clinical_options</span><span class="p">())</span>
+            
+            <span class="c1"># Create the folder to save the data if it doesn&#39;t exist.</span>
+            <span class="c1"># If the folder exists, it might be because the data is already downloaded.</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os_path</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+
+                    <span class="n">destino</span> <span class="o">=</span> <span class="n">project_id</span>
+
+                    <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">destino</span><span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="n">destino</span> <span class="o">=</span> <span class="n">os_path</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">project_id</span>
+                    
+                    <span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">destino</span><span class="p">)</span>
+                    
+            <span class="k">except</span><span class="p">:</span>
+
+                <span class="n">content</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">destino</span><span class="p">))</span>
+                
+                <span class="c1"># If files are found, it is needed to check if the clinic option has been downloaded</span>
+                <span class="c1"># e.g: it may be downloaded clinical_drug but not clinical_patient  </span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">find_clinical</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">clinic_info</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+                
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clinical Information: &quot;</span> <span class="o">+</span> <span class="n">clinic_info</span> <span class="o">+</span> <span class="s2">&quot; already exists in the current directory.&quot;</span><span class="p">)</span>
+    
+                    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="c1"># The function finishes but not the whole program</span>
+
+
+            <span class="c1"># Get the query with filters elected</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Accessing GDC. This might take a while...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                                        
+            <span class="n">response</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_clinical_query</span><span class="p">(</span><span class="n">project_id</span><span class="p">,</span> <span class="n">legacy</span><span class="p">)</span>
+                            
+            <span class="n">content</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span>
+              
+            <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="c1"># Transform to json format (dict)                      </span>
+                            
+            <span class="c1"># We get the data and the total size of the query, which is the sum of the size of each result in bytes</span>
+            <span class="n">datos</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="s2">&quot;hits&quot;</span><span class="p">]</span> <span class="c1"># Access to third level</span>
+             
+            <span class="c1"># We need the second part of the name, e.g: TCGA-SKCM =&gt; skcm</span>
+            <span class="n">low_proj</span> <span class="o">=</span> <span class="n">project_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                 
+            <span class="c1"># If 0 is returned, a file for the indicated clinical data was not found</span>
+            <span class="n">file_search</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">fl</span><span class="p">:</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">regex_file_name</span><span class="p">(</span><span class="n">low_proj</span><span class="p">,</span> <span class="n">clinic_info</span><span class="p">,</span> <span class="n">fl</span><span class="p">[</span><span class="s1">&#39;file_name&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="kc">True</span><span class="p">,</span> <span class="n">datos</span><span class="p">))</span>
+                             
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_search</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clinical File: &quot;</span> <span class="o">+</span> <span class="n">clinic_info</span> <span class="o">+</span> <span class="s2">&quot; was not posible to find&quot;</span><span class="p">)</span>
+                  
+                <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                         
+                
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">contenido</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">destino</span><span class="p">))</span>
+                 
+                <span class="k">if</span> <span class="n">file_search</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">contenido</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                 
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clinical File: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_search</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;file_name&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; already exists in the current directory.&quot;</span><span class="p">)</span>
+                 
+                    <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                 
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading clinical information: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">clinic_info</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                 
+                <span class="n">path</span> <span class="o">=</span> <span class="n">destino</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">file_search</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span>
+                 
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">ETL</span><span class="o">.</span><span class="n">get_endpt_data</span><span class="p">(),</span> <span class="n">data</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;ids&quot;</span> <span class="p">:</span> <span class="n">file_search</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]}),</span> <span class="n">headers</span><span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span> <span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">},</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                
+                <span class="n">ETL</span><span class="o">.</span><span class="n">thread_download_file</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">project_identifiers</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_projects</span><span class="p">()</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Project: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">project_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; was not found. Availables projects are:</span><span class="se">\n</span><span class="s2"> &quot;</span><span class="p">)</span>
+    
+    
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">project_identifiers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    
+                <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span>
+                
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;15}</span><span class="s2"> </span><span class="si">{:&lt;10}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+                
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please set a valid project argument.&quot;</span><span class="p">)</span>
+            <span class="c1">#print(ut.fg(&#39;light_red&#39;) + &quot;Please set a valid project argument.&quot;)</span>
+                
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+    
+
+<div class="viewcode-block" id="ProcessGDC.download_genecode"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.download_genecode">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">download_genecode</span><span class="p">(</span><span class="n">url_gtf</span> <span class="o">=</span> <span class="s2">&quot;https://api.gdc.cancer.gov/data/be002a2c-3b27-43f3-9e0f-fd47db92a6b5&quot;</span><span class="p">,</span> <span class="n">name_gtf</span> <span class="o">=</span> <span class="s2">&quot;genecode_v36&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Download genecode to create a data structure with information about</span>
+<span class="sd">            specific genes. It will allow building normalization functions.</span>
+
+<span class="sd">            :param url_gtf: URL where the genecode is hosted. By default, the program download from GDC and its 36th version.</span>
+<span class="sd">            :type url_gtf: str</span>
+<span class="sd">            :param name_gft: Name of the file (WITHOUT extension). Its extension must be .gtf</span>
+<span class="sd">            :param name_gft: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url_gtf</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">full_name</span> <span class="o">=</span> <span class="n">name_gtf</span> <span class="o">+</span> <span class="s2">&quot;.gtf&quot;</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+        
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading gene model...&quot;</span><span class="p">)</span>
+        
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">full_name</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">decode_content</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># just in case transport encoding was applied</span>
+                <span class="n">gzip_file</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copyfileobj</span><span class="p">(</span><span class="n">gzip_file</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Gene Model Downloaded</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error trying to download gene model&quot;</span><span class="p">)</span>
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProcessGDC.create_gene_model"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.create_gene_model">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">create_gene_model</span><span class="p">(</span><span class="n">path_gtf</span> <span class="o">=</span> <span class="s2">&quot;genecode_v36.gtf&quot;</span><span class="p">,</span> <span class="n">path_save</span> <span class="o">=</span> <span class="s2">&quot;genecode_v36.csv&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a DataFrame that allow an easy treatment with information about Genes.</span>
+<span class="sd">            The function will create a TSV readable with features of Genes. If CSV exist, there is</span>
+<span class="sd">            not neccesary to call this function, only read it.</span>
+
+<span class="sd">            :param path_gtf: Path where genecode with GTF format is located</span>
+<span class="sd">            :type path_gtf: str</span>
+<span class="sd">            :param path_save: Path where the CSV result will be save</span>
+<span class="sd">            :param path_save: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Only necessary to create the genecode model</span>
+        <span class="kn">from</span> <span class="nn">rpy2.robjects.packages</span> <span class="kn">import</span> <span class="n">importr</span>
+        <span class="kn">import</span> <span class="nn">rpy2.robjects</span> <span class="k">as</span> <span class="nn">ro</span>
+
+        <span class="n">utils</span> <span class="o">=</span> <span class="n">importr</span><span class="p">(</span><span class="s1">&#39;utils&#39;</span><span class="p">)</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">install_packages</span><span class="p">(</span><span class="s2">&quot;BiocManager&quot;</span><span class="p">)</span>
+
+        <span class="n">BiocManager</span> <span class="o">=</span> <span class="n">importr</span><span class="p">(</span><span class="s2">&quot;BiocManager&quot;</span><span class="p">)</span>
+        <span class="n">BiocManager</span><span class="o">.</span><span class="n">install</span><span class="p">(</span><span class="s2">&quot;GenomicFeatures&quot;</span><span class="p">)</span>
+
+        <span class="n">GenomicFeatures</span> <span class="o">=</span> <span class="n">importr</span><span class="p">(</span><span class="s2">&quot;GenomicFeatures&quot;</span><span class="p">)</span>
+
+        <span class="c1"># It only takes a minute to run (3M lines)</span>
+        <span class="n">gtf_txdb</span> <span class="o">=</span> <span class="n">GenomicFeatures</span><span class="o">.</span><span class="n">makeTxDbFromGFF</span><span class="p">(</span><span class="n">path_gtf</span><span class="p">)</span>
+        <span class="n">gene_list</span> <span class="o">=</span> <span class="n">GenomicFeatures</span><span class="o">.</span><span class="n">genes</span><span class="p">(</span><span class="n">gtf_txdb</span><span class="p">)</span>
+
+        <span class="n">dataf</span> <span class="o">=</span> <span class="n">ro</span><span class="o">.</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;data.frame&#39;</span><span class="p">](</span><span class="n">gene_list</span><span class="p">)</span>
+
+        <span class="c1"># R&#39;s Function to write on a new File</span>
+        <span class="n">write_csv</span> <span class="o">=</span> <span class="n">ro</span><span class="o">.</span><span class="n">r</span><span class="p">(</span><span class="s1">&#39;write.csv&#39;</span><span class="p">)</span> <span class="c1"># Generate de R&#39;s Function to use then</span>
+
+        <span class="n">write_csv</span><span class="p">(</span><span class="n">dataf</span><span class="p">,</span> <span class="n">path_save</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ProcessGDC.read_genecode_csv"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.read_genecode_csv">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read_genecode_csv</span><span class="p">(</span><span class="n">file_csv</span><span class="o">=</span><span class="s2">&quot;../genecode_v36.csv&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read a CSV file that contains information about genes</span>
+<span class="sd">            and return a DataFrame to work with it</span>
+
+<span class="sd">            :param file_csv: Path where the genecode on CSV format is saved</span>
+<span class="sd">            :type file_csv: str</span>
+<span class="sd">            :param sep: Character that delimit its structure</span>
+<span class="sd">            :type sep: str</span>
+
+<span class="sd">            :return: A DataFrame with Gene Information</span>
+<span class="sd">            :rtype: DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">genemodel</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">file_csv</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
+
+        <span class="n">columns_nm</span> <span class="o">=</span> <span class="n">pro</span><span class="o">.</span><span class="n">DataColumnames</span><span class="p">()</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">genemodel</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">columns_nm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Unnamed: 0&quot;</span><span class="p">:</span>
+            
+            <span class="n">genemodel</span> <span class="o">=</span> <span class="n">genemodel</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+        
+        <span class="k">return</span> <span class="n">genemodel</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;gene_id&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1">###############################################################################</span>
+        
+<span class="c1">#                        READ DATA FUNCTIONS</span>
+
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="ProcessGDC.read_file_rna_legacy"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.read_file_rna_legacy">[docs]</a>    <span class="nd">@staticmethod</span>      
+    <span class="k">def</span> <span class="nf">read_file_rna_legacy</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read a single Rna-Seq file from The TCGA Legacy Archive.</span>
+<span class="sd">            The first line is the column&#39;s names.</span>
+<span class="sd">            An undefined number of rows are skipped while their first character</span>
+<span class="sd">            is a &#39;?&#39;.</span>
+<span class="sd">            The index is set to the first column, which is the gene_id.</span>
+<span class="sd">            In this type of files the gene_id are made up of the ID of the gene and a number,</span>
+<span class="sd">            separated by a &quot;|&quot;. Only the ID of the gene is saved.</span>
+<span class="sd">         </span>
+<span class="sd">            :param file_name: File name to be read.</span>
+<span class="sd">            :type dir_path: str</span>
+<span class="sd">            :param col: Name of the column to be read. Set to &#39;unstranded&#39;.</span>
+<span class="sd">            :type col: str</span>
+<span class="sd">            :param sep: Separator character between fields. Defaults to &quot;\t&quot; (Tab-separated values).</span>
+<span class="sd">            :type sep: str</span>
+
+<span class="sd">            :return: DataFrame with file&#39;s data read.</span>
+<span class="sd">            :rtype: DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">header</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">data_file</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">skip_line</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">tsv_file</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">delimiter</span> <span class="o">=</span> <span class="n">sep</span><span class="p">)</span>
+        
+            <span class="n">header</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span>
+          
+            <span class="c1"># ship the line while the first charcater is a &quot;?&quot;</span>
+            <span class="k">while</span><span class="p">(</span><span class="n">skip_line</span><span class="p">):</span>
+                
+                <span class="n">line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span>
+              
+                <span class="k">if</span> <span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;?&quot;</span><span class="p">):</span>
+                    
+                    <span class="n">skip_line</span> <span class="o">=</span> <span class="kc">False</span>
+                    
+                    <span class="n">data_file</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+              
+                
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tsv_file</span><span class="p">:</span>
+                
+                <span class="n">data_file</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>        
+        
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_file</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">header</span><span class="p">)</span>
+       
+        <span class="n">ids_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dFrame</span><span class="o">.</span><span class="n">columns</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">dFrame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">ids_</span><span class="p">)</span> <span class="c1"># Primary Key Columns</span>
+        
+        <span class="c1"># The gene_is strucutre is GeneID|Number, so only the ID of the gene is saved</span>
+        <span class="n">dFrame</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="k">lambda</span> <span class="n">rw</span> <span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">rw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;|&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+          
+        <span class="c1"># It is col-1 because we set the index earlier, so if col = 1, now</span>
+        <span class="c1"># it will be col = 0</span>
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">dFrame</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:,</span> <span class="n">col</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">dFrame</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="ProcessGDC.read_file_rna"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.read_file_rna">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read_file_rna</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read a single Rna-Seq file from The GDC portal. </span>
+<span class="sd">            The first line of this type of files is a comment that it is skipped.</span>
+<span class="sd">            The second line will be the header of the data.</span>
+<span class="sd">            Next lines are skipped / saved in a summary_file because they store </span>
+<span class="sd">            summary information of the file.</span>
+<span class="sd">            The index is set to the first column, which is the gene_id.</span>
+<span class="sd">         </span>
+<span class="sd">            :param file_name: File name to be read.</span>
+<span class="sd">            :type dir_path: str</span>
+<span class="sd">            :param col: Name of the column to be read. Set to &#39;unstranded&#39;.</span>
+<span class="sd">            :type col: str</span>
+<span class="sd">            :param sep: Separator character between fields. Defaults to &quot;\t&quot; (Tab-separated values).</span>
+<span class="sd">            :type sep: str</span>
+
+<span class="sd">            :return: DataFrame with file&#39;s data read.</span>
+<span class="sd">            :rtype: DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">head_file</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">summary_file</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">data_file</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">init_range</span> <span class="o">=</span> <span class="mi">6</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">tsv_file</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">delimiter</span> <span class="o">=</span> <span class="n">sep</span><span class="p">)</span>
+        
+            <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span> <span class="c1"># Remove comment</span>
+        
+            <span class="n">head_file</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span>
+        
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">init_range</span><span class="p">):</span>
+              
+                <span class="n">summ_f</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span>
+                <span class="n">summary_file</span><span class="p">[</span><span class="n">summ_f</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">summ_f</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+              
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tsv_file</span><span class="p">:</span>
+                <span class="n">data_file</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        
+        
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_file</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">head_file</span><span class="p">)</span>
+        
+        <span class="n">ids_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dFrame</span><span class="o">.</span><span class="n">columns</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># Gene_ID will be the column</span>
+
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">dFrame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">ids_</span><span class="p">)</span> <span class="c1"># Primary Key Columns</span>
+        
+        <span class="c1"># Check if the column name exists</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">dFrame</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">dFrame</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">dFrame</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span></div>
+                
+
+<div class="viewcode-block" id="ProcessGDC.read_rna"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.read_rna">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read_rna</span><span class="p">(</span><span class="n">dir_path</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">save</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read Rna-Seq files from The Cancer Genome Atlas (TCGA) portal.</span>
+<span class="sd">            The file will be read in a different way depending on whether it is from </span>
+<span class="sd">            the Legacy Data portal or from the GDC Data portal.</span>
+<span class="sd">            For the GDC portal, unstranded data is downloaded by default.</span>
+<span class="sd">            For the Legacy Archive, it will be read the second column of the file</span>
+<span class="sd">            that can be raw counts or normalized counts. While downloading the data, </span>
+<span class="sd">            the user can indicate the type of data to dowload by the parameter &quot;normalized&quot;.</span>
+<span class="sd">            </span>
+<span class="sd">            :param dir_path: The path of the folder where the project has been downloaded. </span>
+<span class="sd">                By feault, the program search the folder in the current directory, so if </span>
+<span class="sd">                the project has been saved in a different folder, the user must indicate</span>
+<span class="sd">                the full path.</span>
+<span class="sd">            :type dir_path: str</span>
+<span class="sd">            :param sep: Separator character between fields. Defaults to &quot;\t&quot; (Tab-separated values).</span>
+<span class="sd">            :type sep: str</span>
+<span class="sd">            :param save: &#39;True&#39; to keep the downloaded data in the folder and &#39;False&#39; to remove</span>
+<span class="sd">            the downloaded data after read it; defaults to &#39;True&#39;.</span>
+<span class="sd">            :type save: bool</span>
+
+<span class="sd">            :return: DataFrame with the RNA-Seq information read.</span>
+<span class="sd">            :rtype: DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Check if the path exists</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)):</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The destination path of project does not exist.&quot;</span><span class="p">)</span> 
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Reading manifest...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Read the associated manifest file to get Entity IDs</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">manifest</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">dir_path</span> <span class="o">+</span> <span class="s2">&quot;/manifest.txt&quot;</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="n">sep</span><span class="p">)</span>
+            
+            <span class="n">manifest</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;File_Name&quot;</span><span class="p">)</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Manifest read.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span><span class="p">:</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;manifest.txt file does not exist.&quot;</span><span class="p">)</span>
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            
+      
+        <span class="n">content</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">dir_path</span><span class="p">))</span>
+       
+        <span class="n">subcontent</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+        
+        <span class="c1"># We need to open one of the files in order to know if the files we are going to read are</span>
+        <span class="c1"># from the legacy database or not. This is because the structure is different between both files.</span>
+        <span class="c1"># If it is from the actual database, the first line will be a comment and it will start with a &quot;#&quot;</span>
+        <span class="c1"># If legacy == False -&gt; column unstranded will be downloaded by default.</span>
+        <span class="c1"># If legacy == True -&gt; there is only one column available. The name of the column will be different</span>
+        <span class="c1"># depending on the nature of the data: raw_counts if it is raw data or normalized_results if it is normalized,</span>
+        <span class="c1"># normalized or raw data is selected in the query with the &quot;normalized&quot; parameter.</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">subcontent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">subcontent</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            
+            <span class="n">firstline</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># If the first character of the line is an # =&gt; legacy == False</span>
+        <span class="k">if</span> <span class="n">firstline</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">set_data_legacy</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>        
+            <span class="c1"># Unstranded data is read.</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="s2">&quot;unstranded&quot;</span>
+         
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">set_data_legacy</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>            
+            <span class="c1"># The second (column = 1) is read.</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="mi">1</span>
+
+                           
+        <span class="n">entity_id</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">subcontent</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Entity_ID&quot;</span><span class="p">]</span>
+        
+        <span class="c1"># DataFrame is formed</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_data_legacy</span><span class="p">()):</span>
+            
+            <span class="n">data_analysis</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">read_file_rna_legacy</span><span class="p">(</span><span class="n">subcontent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">subcontent</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">col</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span>
+            <span class="n">data_analysis</span> <span class="o">=</span> <span class="n">data_analysis</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">data_analysis</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="n">entity_id</span><span class="p">})</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">data_analysis</span> <span class="o">=</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">read_file_rna</span><span class="p">(</span><span class="n">subcontent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">subcontent</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">col</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span> <span class="c1">#subcontent[0] is the root</span>
+            <span class="n">data_analysis</span> <span class="o">=</span> <span class="n">data_analysis</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span> <span class="p">:</span> <span class="n">entity_id</span><span class="p">})</span>
+        
+        
+        <span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># delete first element </span>
+                
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Reading the data...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">thread_</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">lista_df</span> <span class="o">=</span> <span class="p">[</span><span class="n">data_analysis</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">subd</span> <span class="ow">in</span> <span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                
+            <span class="n">subcontent</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">ut</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">subd</span><span class="p">))</span>
+            
+            <span class="n">file</span> <span class="o">=</span> <span class="n">subcontent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">subcontent</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            
+            <span class="n">entity_id</span> <span class="o">=</span> <span class="n">manifest</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">subcontent</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Entity_ID&quot;</span><span class="p">]</span>
+
+            <span class="n">thread_</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">ThreadWithResult</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">ProcessGDC</span><span class="o">.</span><span class="n">write_to_dataframe</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">lista_df</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">entity_id</span><span class="p">,</span> <span class="n">ProcessGDC</span><span class="o">.</span><span class="n">get_data_legacy</span><span class="p">()))</span>
+                
+            <span class="n">thread_</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="n">thread_</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Joining the data... It might take a moment.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">data_analysis</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">lista_df</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data successfully read.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        
+        <span class="k">if</span> <span class="n">save</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data will be removed after read the files&quot;</span><span class="p">)</span>
+            
+            <span class="n">ut</span><span class="o">.</span><span class="n">ut</span><span class="o">.</span><span class="n">recursive_delete_data</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)</span>
+            
+        
+        <span class="k">return</span> <span class="n">data_analysis</span>  </div>
+
+
+<div class="viewcode-block" id="ProcessGDC.read_clinical"><a class="viewcode-back" href="../../src.html#src.etl.ProcessGDC.read_clinical">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">read_clinical</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read a clinical file preivously downaloaded from The Cancer Genome Atlas (TCGA) portal.</span>
+<span class="sd">        In TCGA clinical files, the first line is a comment that it is skipped. The two following lines</span>
+<span class="sd">        have the header names; only the second header&#39;s line is kept, due to they have the same values</span>
+<span class="sd">        but with different names.</span>
+<span class="sd">        Returns a dataframe with the clinical information where the index is set to &#39;bcr_patient_barcode&#39;,</span>
+<span class="sd">        that match with the Entity ID of the samples.</span>
+<span class="sd">        </span>
+<span class="sd">        :param file_name: The name of the clinical project to read. By default, the programn search the file</span>
+<span class="sd">            in the actual path, so the location of the file is required to find the file. </span>
+<span class="sd">            E.g: &quot;TCGA-BRCA/nationwidechildrens.org_clinical_patient_brca.txt&quot;.</span>
+<span class="sd">        :type file_name: str</span>
+<span class="sd">        :param sep: Separator character between fields. Defaults to &quot;\t&quot; (Tab-separated values).</span>
+<span class="sd">        :type sep: str</span>
+
+<span class="sd">        :return: DataFrame with the clinical information read. The index has been set to</span>
+<span class="sd">            &#39;bcr_patient_barcode&#39;, matching with the Entity ID of the samples.</span>
+<span class="sd">        :rtype: DataFrame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">header_line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">data_file</span> <span class="o">=</span> <span class="p">[]</span>
+      
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># In TCGA, clinical files have two different headers, </span>
+            <span class="c1"># we will just save the second one</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                <span class="n">tsv_file</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
+              
+                <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span>  
+        
+                <span class="n">header_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span>
+        
+                <span class="nb">next</span><span class="p">(</span><span class="n">tsv_file</span><span class="p">)</span> 
+                  
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tsv_file</span><span class="p">:</span>
+                    <span class="n">data_file</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>        
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The file: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; does not exist.&quot;</span><span class="p">)</span>
+            <span class="n">ut</span><span class="o">.</span><span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+        
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_file</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">header_line</span><span class="p">)</span>
+        
+        <span class="n">dFrame</span> <span class="o">=</span> <span class="n">dFrame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;bcr_patient_barcode&quot;</span><span class="p">)</span> <span class="c1"># Primary Key Columns</span>
+        
+        <span class="k">return</span> <span class="n">dFrame</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Alba Casillas Rodríguez.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+<style>
+    .wy-nav-content-wrap {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+        display: block;
+    }
+
+    .wy-nav-content {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+    }
+
+    .rst-content {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search,
+    .wy-nav-top {
+        background: hsl(0, 2%, 10%);
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+        background: #85e4a5;
+    }
+
+    .caption {
+        background: hsl(0, 0%, 100%);
+    }
+
+    .caption-text {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a:hover {
+        color: hsl(0, 0%, 100%)
+    }
+</style>
+
+
+</body>
+</html>

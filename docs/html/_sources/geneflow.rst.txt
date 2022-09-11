@@ -1,0 +1,7 @@
+GeneFlow
+===============
+
+.. automodule:: geneflow.geneflow
+   :members:
+   :undoc-members:
+   :show-inheritance:

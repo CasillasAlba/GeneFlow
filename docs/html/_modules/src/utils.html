@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.utils &mdash; GeneFlow 0.8 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html"><img src="../../_static/geneflow_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">GeneFlow:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../geneflow.html">GeneFlow</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Modules:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html">DataObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.etl">ETL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.model">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.objects">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.processing">Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.utils">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../src.html#module-src.visualize">Visualize</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeneFlow</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>src.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">@author: Alba Casillas Rodríguez (albacaro@correo.ugr.es)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span> 
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">######################################################</span>
+
+<span class="sd">                    SERVER STATUS</span>
+
+<span class="sd">######################################################</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="status_OK"><a class="viewcode-back" href="../../src.html#src.utils.status_OK">[docs]</a><span class="k">def</span> <span class="nf">status_OK</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for 200 status code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;There is a connection to the server.&quot;</span> <span class="c1"># OK</span></div>
+
+<div class="viewcode-block" id="status_CREATED"><a class="viewcode-back" href="../../src.html#src.utils.status_CREATED">[docs]</a><span class="k">def</span> <span class="nf">status_CREATED</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for 201 status code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Connection created successfully.&quot;</span> <span class="c1"># CREATED</span></div>
+
+<div class="viewcode-block" id="status_UNDOCUMENTED"><a class="viewcode-back" href="../../src.html#src.utils.status_UNDOCUMENTED">[docs]</a><span class="k">def</span> <span class="nf">status_UNDOCUMENTED</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for 400 status code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;The object does not exist.&quot;</span> <span class="c1"># UNDOCUMENTED (the object does not exist)</span></div>
+
+<div class="viewcode-block" id="status_UNAUTHORIZED"><a class="viewcode-back" href="../../src.html#src.utils.status_UNAUTHORIZED">[docs]</a><span class="k">def</span> <span class="nf">status_UNAUTHORIZED</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for 401 status code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Unauthorized access to the server.&quot;</span> <span class="c1"># UNAUTHORIZED</span></div>
+    
+<div class="viewcode-block" id="status_FORBIDDEN"><a class="viewcode-back" href="../../src.html#src.utils.status_FORBIDDEN">[docs]</a><span class="k">def</span> <span class="nf">status_FORBIDDEN</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for 403 status code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Access denied to the server.&quot;</span> <span class="c1"># FORBIDDEN</span></div>
+    
+<div class="viewcode-block" id="status_NOTFOUND"><a class="viewcode-back" href="../../src.html#src.utils.status_NOTFOUND">[docs]</a><span class="k">def</span> <span class="nf">status_NOTFOUND</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for 404 status code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Server not found.&quot;</span> <span class="c1"># NOT FOUND</span></div>
+
+<div class="viewcode-block" id="status_unknown"><a class="viewcode-back" href="../../src.html#src.utils.status_unknown">[docs]</a><span class="k">def</span> <span class="nf">status_unknown</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Message for an unknown error.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;Unknown error&quot;</span></div>
+
+
+<div class="viewcode-block" id="status_code"><a class="viewcode-back" href="../../src.html#src.utils.status_code">[docs]</a><span class="k">def</span> <span class="nf">status_code</span><span class="p">(</span><span class="n">stat_code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the status response from the server</span>
+<span class="sd">        </span>
+<span class="sd">    :param stat_code: Current status of the checked URL endpoint.</span>
+<span class="sd">    :type stat_code: int</span>
+
+<span class="sd">    :return: Message explaining the obtained server&#39;s code.</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="mi">200</span><span class="p">:</span> <span class="n">status_OK</span><span class="p">(),</span> 
+        <span class="mi">201</span><span class="p">:</span> <span class="n">status_CREATED</span><span class="p">(),</span>  
+        <span class="mi">400</span><span class="p">:</span> <span class="n">status_UNDOCUMENTED</span><span class="p">(),</span> 
+        <span class="mi">401</span><span class="p">:</span> <span class="n">status_UNAUTHORIZED</span><span class="p">(),</span> 
+        <span class="mi">403</span><span class="p">:</span> <span class="n">status_FORBIDDEN</span><span class="p">(),</span> 
+        <span class="mi">404</span><span class="p">:</span> <span class="n">status_NOTFOUND</span><span class="p">(),</span> 
+    <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stat_code</span><span class="p">,</span> <span class="n">status_unknown</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="check_server_status"><a class="viewcode-back" href="../../src.html#src.utils.check_server_status">[docs]</a><span class="k">def</span> <span class="nf">check_server_status</span><span class="p">(</span><span class="n">endpt_status</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check the status of the server.</span>
+<span class="sd">        </span>
+<span class="sd">    :param endpt_status: URL (endpoint) to be checked.</span>
+<span class="sd">    :type endpt_status: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        
+    <span class="n">url</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">endpt_status</span><span class="p">)</span>
+        
+    <span class="n">status</span> <span class="o">=</span> <span class="n">status_code</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">status_code</span><span class="p">)</span>
+    
+    <span class="k">if</span><span class="p">(</span><span class="n">status</span> <span class="o">!=</span> <span class="n">status_OK</span><span class="p">()):</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error accessing the server. Try again later. ERROR: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">status</span><span class="p">))</span> 
+        
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_json_query"><a class="viewcode-back" href="../../src.html#src.utils.get_json_query">[docs]</a><span class="k">def</span> <span class="nf">get_json_query</span><span class="p">(</span><span class="n">url_query</span><span class="p">,</span> <span class="n">params_query</span> <span class="o">=</span> <span class="p">{}):</span>
+    <span class="sd">&quot;&quot;&quot;Get a structured JSON just by passing a URL, so it can be used by all the models.</span>
+<span class="sd">    Each model will processes it as it is structured in its API.</span>
+<span class="sd">    Params are empty by default, to get the data with or without parameters</span>
+<span class="sd">    </span>
+<span class="sd">    :param url_query: URL to do the request.</span>
+<span class="sd">    :type url_query: str</span>
+<span class="sd">    :param params_query: params to filter the query.</span>
+<span class="sd">    :type params_query: dict</span>
+
+<span class="sd">    :return: data obtained from the request.</span>
+<span class="sd">    :rtype: json</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">url</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url_query</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">params_query</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">text</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="create_opin"><a class="viewcode-back" href="../../src.html#src.utils.create_opin">[docs]</a><span class="k">def</span> <span class="nf">create_opin</span><span class="p">(</span><span class="n">filt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a single in-operator in json format for the query, adding a field and its value.</span>
+
+<span class="sd">    :param filt: values of a filter.</span>
+<span class="sd">    :type filt: list[str]</span>
+
+<span class="sd">    :return: the structured in-operator</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">opin</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;op&quot;</span> <span class="p">:</span> <span class="s2">&quot;in&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;content&quot;</span> <span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;field&quot;</span> <span class="p">:</span> <span class="n">filt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="s2">&quot;value&quot;</span> <span class="p">:</span> <span class="n">filt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+    
+    <span class="k">return</span> <span class="n">opin</span></div>
+
+
+<div class="viewcode-block" id="find_parameter"><a class="viewcode-back" href="../../src.html#src.utils.find_parameter">[docs]</a><span class="k">def</span> <span class="nf">find_parameter</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">param_results</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Search in the result&#39;s list the desired value.</span>
+<span class="sd">        If it is not found, the method shows all available parameters.</span>
+<span class="sd">        If missing is returned, that option will be removed from the result&#39;s list</span>
+<span class="sd">        because it is an undesired value.</span>
+
+<span class="sd">    :param value: desired value to find on a parameter.</span>
+<span class="sd">    :type value: str</span>
+<span class="sd">    :param param_results: available parameters.</span>
+<span class="sd">    :type param_results: list[str]</span>
+<span class="sd">    :param param: param where to find.</span>
+<span class="sd">    :type param: str</span>
+
+<span class="sd">    :return: param found.</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">param_results</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(((</span><span class="n">param</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span><span class="o">.</span><span class="n">title</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span>  <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; was not found. Check available parameter: </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">param_results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s2">&quot;_missing&quot;</span> <span class="ow">in</span> <span class="n">param_results</span><span class="p">):</span>
+        
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">No data available for this field.&quot;</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># param_results have at least one available parameter</span>
+            <span class="c1"># remove _missing if it is an option</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">param_results</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;_missing&quot;</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+            <span class="k">for</span> <span class="n">pm</span> <span class="ow">in</span> <span class="n">param_results</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;2}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pm</span><span class="o">.</span><span class="n">title</span><span class="p">()))</span>
+                
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+    <span class="k">else</span><span class="p">:</span>
+        
+        <span class="k">return</span> <span class="n">param_results</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="print_json"><a class="viewcode-back" href="../../src.html#src.utils.print_json">[docs]</a><span class="k">def</span> <span class="nf">print_json</span><span class="p">(</span><span class="n">json_obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decodes a JSON object and display it in an elegant format per screen,</span>
+
+<span class="sd">    :param json_obj: JSON object to print.</span>
+<span class="sd">    :type json_obj: JSON Object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_obj</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="nb">str</span><span class="p">))</span> <span class="c1"># Display JSON with its correct identation</span></div>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">######################################################</span>
+
+<span class="sd">                    UTILITIES</span>
+
+<span class="sd">######################################################</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="check_have_header"><a class="viewcode-back" href="../../src.html#src.utils.check_have_header">[docs]</a><span class="k">def</span> <span class="nf">check_have_header</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check if the file has or not header.</span>
+<span class="sd">        </span>
+<span class="sd">    :param filename: Name of the file to check if has header or not.</span>
+<span class="sd">    :type filename: str</span>
+
+<span class="sd">    :return: &#39;True&#39; if the file has header, &#39;False&#39; if otherwise.</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">first</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unable to check header&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">first</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s1">&#39;.-0123456789&#39;</span> <span class="c1">#bytes</span></div>
+
+
+<div class="viewcode-block" id="check_arguments"><a class="viewcode-back" href="../../src.html#src.utils.check_arguments">[docs]</a><span class="k">def</span> <span class="nf">check_arguments</span><span class="p">(</span><span class="n">arguments</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check if the arguments of a function uses</span>
+<span class="sd">    the expected type to receive.</span>
+
+<span class="sd">    :param arguments: Arguments to check.</span>
+<span class="sd">    :type arguments: list</span>
+<span class="sd">    :param metadata: List with the type of each of the arguments.</span>
+<span class="sd">    :type metadata: list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">for</span> <span class="n">inp</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="n">inp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="n">inp</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Check the parameter in the arguments</span>
+        <span class="n">arg_value</span> <span class="o">=</span> <span class="n">arguments</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg_value</span><span class="p">,</span> <span class="n">typ</span><span class="p">):</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> type not match with </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg_value</span><span class="p">,</span> <span class="n">typ</span><span class="p">))</span>
+          <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_file"><a class="viewcode-back" href="../../src.html#src.utils.read_file">[docs]</a><span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">):</span> 
+    <span class="sd">&quot;&quot;&quot;Returns a DataFrame with the read file.</span>
+
+<span class="sd">    :param file: File to read</span>
+<span class="sd">    :type file: str</span>
+<span class="sd">    :param index: Value of the index of the DataFrame.</span>
+<span class="sd">    :type index: str</span>
+<span class="sd">    :param sep: Separator character between fields. Defaults to &quot;\t&quot; (Tab-separated values).</span>
+<span class="sd">    :type sep: str</span>
+
+<span class="sd">    :return: DataFrame with the file read.</span>
+<span class="sd">    :rtype: DataFrame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Check if the file has header or not</span>
+        <span class="n">hasHeader</span> <span class="o">=</span> <span class="n">check_have_header</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">hasHeader</span><span class="p">:</span>
+            <span class="n">datos</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
+                    
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">datos</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">columns_datos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">datos</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">columns_datos</span><span class="p">:</span>
+                <span class="n">datos</span> <span class="o">=</span> <span class="n">datos</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> is not a column of the file.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">datos</span>   
+    
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">File &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; was not found.&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+        
+
+<div class="viewcode-block" id="copy_object"><a class="viewcode-back" href="../../src.html#src.utils.copy_object">[docs]</a><span class="k">def</span> <span class="nf">copy_object</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Comparison between objects doesn´t make a copy, </span>
+<span class="sd">    but just add another reference. </span>
+<span class="sd">    This method do a copy of an object.</span>
+
+<span class="sd">    :param obj: Object to do the copy</span>
+<span class="sd">    :type obj: Object</span>
+
+<span class="sd">    :return: Copy of the object</span>
+<span class="sd">    :rtype: object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="recursive_delete_data"><a class="viewcode-back" href="../../src.html#src.utils.recursive_delete_data">[docs]</a><span class="k">def</span> <span class="nf">recursive_delete_data</span><span class="p">(</span><span class="n">dir_to_delete</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Search in the directory tree the input directory, so it remove its</span>
+<span class="sd">        content recursively before remove the root directory.</span>
+
+<span class="sd">    :param dir_to_delete: Directory path to delete its content.</span>
+<span class="sd">    :type dir_to_delete: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Function next(os.walk(dirToDelete)) returns the following structure:</span>
+    <span class="c1">#     [0] -&gt; Root (directory)</span>
+    <span class="c1">#     [1] -&gt; Subdirectories</span>
+    <span class="c1">#     [2] -&gt; Files</span>
+    
+    <span class="n">content</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">dir_to_delete</span><span class="p">))</span>
+                
+    <span class="k">for</span> <span class="n">subd</span> <span class="ow">in</span> <span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c1"># The following path is the root + the subdirectory</span>
+        <span class="n">recursive_delete_data</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">subd</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">fl</span> <span class="ow">in</span> <span class="n">content</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Files need to indicate the root path </span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">fl</span><span class="p">)</span> <span class="c1"># Files</span>
+            
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">strerror</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        
+        <span class="n">os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># Remove the empty root at the end of the process</span>
+        
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">strerror</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="calc_plot_dim"><a class="viewcode-back" href="../../src.html#src.utils.calc_plot_dim">[docs]</a><span class="k">def</span> <span class="nf">calc_plot_dim</span><span class="p">(</span><span class="n">n_elems</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the number of rows and columns of a given number</span>
+<span class="sd">        in order to find the most squared and symetric image that it is possible</span>
+
+<span class="sd">    :param n_elems: The number of elements.</span>
+<span class="sd">    :type n_elems: int</span>
+
+<span class="sd">    :return: The number of rows and columns.</span>
+<span class="sd">    :rtype: int, int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">n_rows</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">if</span> <span class="n">n_elems</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="mi">1</span>
+        
+    <span class="k">elif</span> <span class="n">n_elems</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">:</span>
+        
+        <span class="k">if</span> <span class="n">n_elems</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span>
+            
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n_elems</span><span class="o">//</span><span class="mi">4</span><span class="o">+</span><span class="mi">1</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n_elems</span><span class="o">//</span><span class="mi">4</span>
+    <span class="k">else</span><span class="p">:</span>
+        
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n_elems</span><span class="o">//</span><span class="mi">2</span>
+        
+    <span class="n">n_cols</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_elems</span> <span class="o">/</span> <span class="n">n_rows</span><span class="p">))</span>
+    
+    <span class="n">lista_dimens</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">while</span> <span class="n">n_elems</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        
+        <span class="n">n_c</span> <span class="o">=</span> <span class="n">n_elems</span> <span class="o">-</span> <span class="n">n_cols</span>
+        
+        <span class="k">if</span> <span class="n">n_c</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            
+            <span class="n">lista_dimens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_cols</span><span class="p">)</span>
+            <span class="n">n_elems</span> <span class="o">=</span> <span class="n">n_elems</span> <span class="o">-</span> <span class="n">n_cols</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lista_dimens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_elems</span><span class="p">)</span>
+            <span class="n">n_elems</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+
+    <span class="k">return</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span></div>
+
+
+
+<div class="viewcode-block" id="thresh_by_perc"><a class="viewcode-back" href="../../src.html#src.utils.thresh_by_perc">[docs]</a><span class="k">def</span> <span class="nf">thresh_by_perc</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">perc</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate a limit by percentage by number of rows or columns</span>
+
+<span class="sd">    :param data: the dataframe to calculate that limit according to number of rows or columns.</span>
+<span class="sd">    :type data: DataFrame</span>
+<span class="sd">    :param perc: portion of total elements (0.00 to 100.0).</span>
+<span class="sd">    :type perc: float</span>
+<span class="sd">    :param axis: Axis 0 means by rows, 1 by columns.</span>
+<span class="sd">    :type axis: int</span>
+
+<span class="sd">    :return: the mininum number of elements that consider a limit.</span>
+<span class="sd">    :rtype: int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">num_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(((</span><span class="mi">100</span><span class="o">-</span><span class="n">perc</span><span class="p">)</span><span class="o">/</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="n">num_rows</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> 
+        
+            <span class="n">num_columns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(((</span><span class="mi">100</span><span class="o">-</span><span class="n">perc</span><span class="p">)</span><span class="o">/</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="n">num_columns</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Axis only can be 0 or 1.&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Data must be a DataFrame.&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Print iterations progress while download the data</span>
+<span class="c1"># https://stackoverflow.com/questions/3173320/text-progress-bar-in-terminal-with-block-characters</span>
+<div class="viewcode-block" id="print_progress_bar"><a class="viewcode-back" href="../../src.html#src.utils.print_progress_bar">[docs]</a><span class="k">def</span> <span class="nf">print_progress_bar</span><span class="p">(</span><span class="n">iteration</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">mb_iter</span><span class="p">,</span> <span class="n">mb_total</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;Progress:&#39;</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;Complete&#39;</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">decimals</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>  <span class="n">fill</span> <span class="o">=</span> <span class="s1">&#39;█&#39;</span><span class="p">,</span> <span class="n">printEnd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print a bar to show the progress of the download.</span>
+<span class="sd">    </span>
+<span class="sd">    :param iteration: Iterator that indicates the current file that it is being downloaded.</span>
+<span class="sd">    :type iteration: int </span>
+<span class="sd">    :param total: Total number of files to be downloaded.</span>
+<span class="sd">    :type total: int </span>
+<span class="sd">    :param mb_iter: Size of the current file in MB.</span>
+<span class="sd">    :type mb_iter: float </span>
+<span class="sd">    :param mb_total: Total size of the project in MB.</span>
+<span class="sd">    :type mb_total: float </span>
+<span class="sd">    :param prefix: Message to appear next to the amount of current size downloaded.</span>
+<span class="sd">    :type prefix: str </span>
+<span class="sd">    :param suffix: Message to appear next to the completed part.</span>
+<span class="sd">    :type suffix: str </span>
+<span class="sd">    :param length: Total length of the progress bar. Defaults to 50.</span>
+<span class="sd">    :type length: int </span>
+<span class="sd">    :param decimals: Integer value that indicated the percentage of downloaded data.</span>
+<span class="sd">        Defaults to 1.</span>
+<span class="sd">    :type decimals: int </span>
+<span class="sd">    :param fill: Charcater to print the progress of the bar. Defaults to &#39;█&#39;.</span>
+<span class="sd">    :type fill: str </span>
+<span class="sd">    :param printEnd: Character to print at the end of the iteration.    </span>
+<span class="sd">        Defaults to &quot;\r&quot; (carriage return). A carriage return means moving </span>
+<span class="sd">        the cursor to the beginning of the line.</span>
+<span class="sd">    :type printEnd: str </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">percent</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;{0:.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">decimals</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;f}&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)))</span>
+    
+    <span class="n">filledLength</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">length</span> <span class="o">*</span> <span class="n">iteration</span> <span class="o">//</span> <span class="n">total</span><span class="p">)</span>
+
+    <span class="n">bar</span> <span class="o">=</span> <span class="n">fill</span> <span class="o">*</span> <span class="n">filledLength</span> <span class="o">+</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="p">(</span><span class="n">length</span> <span class="o">-</span> <span class="n">filledLength</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\r</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s1"> |</span><span class="si">{</span><span class="n">bar</span><span class="si">}</span><span class="s1">| </span><span class="si">{</span><span class="n">percent</span><span class="si">}</span><span class="s1">% </span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">mb_iter</span><span class="si">}</span><span class="s1"> MB/</span><span class="si">{</span><span class="n">mb_total</span><span class="si">}</span><span class="s1"> MB downloaded)&#39;</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">printEnd</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[F&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">iteration</span> <span class="o">==</span> <span class="n">total</span><span class="p">:</span> 
+        <span class="nb">print</span><span class="p">()</span></div>
+
+
+<span class="c1"># The class allows to use multithreading to join results</span>
+<span class="c1"># The use of multiples threads will increase the speed reading the downloaded data</span>
+<span class="c1"># https://www.bogotobogo.com/python/Multithread/python_multithreading_subclassing_creating_threads.php</span>
+       
+<div class="viewcode-block" id="ThreadWithResult"><a class="viewcode-back" href="../../src.html#src.utils.ThreadWithResult">[docs]</a><span class="k">class</span> <span class="nc">ThreadWithResult</span><span class="p">(</span><span class="n">Thread</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="o">*</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">function</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="n">target</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">function</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="n">daemon</span><span class="p">)</span></div>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">######################################################</span>
+
+<span class="sd">                  READ DATAOBJECT</span>
+
+<span class="sd">######################################################</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="serialize"><a class="viewcode-back" href="../../src.html#src.utils.serialize">[docs]</a><span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;JSON serializer for objects not serializable by default json code</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">serial</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">serial</span>
+
+    <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span></div>
+
+
+<span class="c1"># DataObject to Dictionary</span>
+<div class="viewcode-block" id="dict_from_dataobject"><a class="viewcode-back" href="../../src.html#src.utils.dict_from_dataobject">[docs]</a><span class="k">def</span> <span class="nf">dict_from_dataobject</span><span class="p">(</span><span class="n">dobject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates a Dictionary from DataObject information</span>
+
+<span class="sd">    :param dobject: a object of class DataObject to extract information</span>
+<span class="sd">    :type dobject: DataObject</span>
+
+<span class="sd">    :return: a dictionary with the same information as input</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dictry</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;counts&quot;</span> <span class="p">:</span> <span class="n">dobject</span><span class="o">.</span><span class="n">get_counts</span><span class="p">(),</span>
+        <span class="s2">&quot;dims&quot;</span> <span class="p">:</span> <span class="n">dobject</span><span class="o">.</span><span class="n">get_counts_dims</span><span class="p">(),</span>
+        <span class="s2">&quot;obs&quot;</span> <span class="p">:</span> <span class="n">dobject</span><span class="o">.</span><span class="n">get_obs</span><span class="p">(),</span>
+        <span class="s2">&quot;var&quot;</span> <span class="p">:</span> <span class="n">dobject</span><span class="o">.</span><span class="n">get_var</span><span class="p">(),</span>
+        <span class="s2">&quot;logs&quot;</span> <span class="p">:</span> <span class="n">dobject</span><span class="o">.</span><span class="n">get_log_pipeline</span><span class="p">(),</span>
+        <span class="s2">&quot;uns&quot;</span> <span class="p">:</span> <span class="n">dobject</span><span class="o">.</span><span class="n">get_uns</span><span class="p">()</span>
+
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">dictry</span></div>
+
+
+<span class="c1"># Dictionary to JSON</span>
+<div class="viewcode-block" id="json_from_dict"><a class="viewcode-back" href="../../src.html#src.utils.json_from_dict">[docs]</a><span class="k">def</span> <span class="nf">json_from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a Json from dictionary information</span>
+
+<span class="sd">    :param data: a dictionary to extract information</span>
+<span class="sd">    :type data: dict</span>
+
+<span class="sd">    :return: a str with json syntax with the same information as input</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Change JSON Serializer class by default by an specific one</span>
+        <span class="c1"># created by the developer</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">serialize</span><span class="p">)</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;JSON could not be converted from Dictionary&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<span class="c1"># JSON to Dictionary           </span>
+<div class="viewcode-block" id="dict_from_json"><a class="viewcode-back" href="../../src.html#src.utils.dict_from_json">[docs]</a><span class="k">def</span> <span class="nf">dict_from_json</span><span class="p">(</span><span class="n">json_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Serialize a dictionary from json information</span>
+
+<span class="sd">    :param json_data: a json structure to extract information</span>
+<span class="sd">    :type json_data: str</span>
+
+<span class="sd">    :return: a dictionary with the same information as input</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_data</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">serialize</span><span class="p">)</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dictionary could not be converted from JSON&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<span class="c1"># JSON File to Dictionary</span>
+<div class="viewcode-block" id="dict_from_json_file"><a class="viewcode-back" href="../../src.html#src.utils.dict_from_json_file">[docs]</a><span class="k">def</span> <span class="nf">dict_from_json_file</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Serialize a dictionary from json file</span>
+
+<span class="sd">    :param path: a path with the json file to extract information</span>
+<span class="sd">    :type path: str</span>
+
+<span class="sd">    :return: a dictionary with the same information as input</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Return if it is a file</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;data_file.json&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">read_file</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">read_file</span><span class="p">)</span> <span class="c1"># return a dict </span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;JSON could not be converted to Dict.&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<span class="c1"># Dictionary to JSON File</span>
+<div class="viewcode-block" id="json_file_from_dict"><a class="viewcode-back" href="../../src.html#src.utils.json_file_from_dict">[docs]</a><span class="k">def</span> <span class="nf">json_file_from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a Json file from dictionary information</span>
+
+<span class="sd">    :param data: a dictionary to extract information</span>
+<span class="sd">    :type data: dict</span>
+<span class="sd">    :param path: path to save new file created. If None, it creates a file on the same</span>
+<span class="sd">        path as program with the generic name &#39;object.json&#39;</span>
+<span class="sd">    :type path: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="s2">&quot;object.json&quot;</span>
+        
+    <span class="k">else</span><span class="p">:</span>    
+        
+        <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;^[</span><span class="se">\x00</span><span class="s2">-</span><span class="se">\x7F</span><span class="s2">]*(.txt|.csv|.tsv|.json|.dict|.dat|.data)$&quot;</span>
+        
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+            <span class="n">dest</span> <span class="o">=</span> <span class="n">path</span> 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="n">tmp_path</span> <span class="o">=</span> <span class="n">tmp_path</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            
+            <span class="n">dest</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/object.json&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output_file</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output_file</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Alba Casillas Rodríguez.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+<style>
+    .wy-nav-content-wrap {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+        display: block;
+    }
+
+    .wy-nav-content {
+        height: 100%;
+        width: 100%;
+        background: hsl(0, 0%, 100%);
+    }
+
+    .rst-content {
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search,
+    .wy-nav-top {
+        background: hsl(0, 2%, 10%);
+    }
+
+    /* Sidebar */
+    .wy-nav-side {
+        background: #85e4a5;
+    }
+
+    .caption {
+        background: hsl(0, 0%, 100%);
+    }
+
+    .caption-text {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a {
+        color: hsl(0, 0%, 0%)
+    }
+
+    .wy-menu-vertical a:hover {
+        color: hsl(0, 0%, 100%)
+    }
+</style>
+
+
+</body>
+</html>
